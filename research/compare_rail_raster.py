@@ -14,6 +14,7 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
 from matplotlib.lines import Line2D
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+from research.network_artifacts import load_masks, load_mask
 import physarum_india as p
 from build_rail_raster import decode
 
@@ -94,10 +95,10 @@ def plot(geo,raster,modelmask,augmask,metrics,out):
 
 if __name__=='__main__':
     geo=p.build_geometry();rail,lonlat,rmetric=rail_points()
-    src=np.load(MODEL_DIR/'out'/'baseline_masks.npz')
+    src=load_masks(MODEL_DIR/'out'/'baseline_masks.npz',geo)
     masks={'Physarum':src['Physarum'], 'Terminal_MST':src['terminal_MST_expanded'],
            'Delhi_shortest_path_union':src['Delhi_shortest_path_union'],
-           'Augmented_MST':np.load(MODEL_DIR/'out'/'augmented_mst_mask.npy')}
+           'Augmented_MST':load_mask(MODEL_DIR/'out'/'augmented_mst_mask.npy',geo)}
     vals={key:compare(geo,rmetric,mask) for key,mask in masks.items()}
     data={'description':'Proximity between model lattice network and rasterized actual railway-line geometries (NOT railway route connectivity)',
           'source':SOURCE,'source_git_blob_sha':SHA,'railway_line_features_in_source':29946,

@@ -7,10 +7,11 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
+from research.network_artifacts import load_masks, load_mask
 import physarum_india as p
 
 OUT=Path('out'); metrics=json.loads((OUT/'benchmark_metrics.json').read_text())
-geo=p.build_geometry(); masks=np.load(OUT/'baseline_masks.npz')
+geo=p.build_geometry(); masks=load_masks(OUT/'baseline_masks.npz',geo)
 names=['Physarum','terminal_MST_expanded','Delhi_shortest_path_union']
 labels=['PHYSARUM-INSPIRED','EXPANDED TERMINAL MST','DELHI SHORTEST-PATH UNION']
 colors=['#ffb72b','#64d5cf','#b78af7'];bg='#070a0f';fg='#edf2f7';mut='#a5b4c5'

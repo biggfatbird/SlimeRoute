@@ -1,0 +1,57 @@
+{
+  "scope": "Public v4.2 review branch; main remains v4.1",
+  "seed7": {
+    "length_km_approx": 10034.549882328187,
+    "terrain_weighted_km_approx": 10461.249409699372,
+    "edges": 315,
+    "connected_pairs": 120,
+    "total_pairs": 120,
+    "mean_detour_reachable_only": 1.3384094625891199,
+    "max_detour_reachable_only": 2.578013372179157
+  },
+  "heuristic": {
+    "length_km_approx": 10016.248612138967,
+    "terrain_weighted_km_approx": 10429.00062350646,
+    "edges": 315,
+    "connected_pairs": 120,
+    "total_pairs": 120,
+    "mean_detour_reachable_only": 1.1976907384291877,
+    "max_detour_reachable_only": 1.9970984099562303
+  },
+  "ten_seed_mean_length_km": 9915.219755309266,
+  "ten_seed_mean_detour": 1.4032853763114996,
+  "ten_seed_all_connected": true,
+  "preliminary_rail_detour": 1.2742333331384572,
+  "rail_polyline_km": 86386.84527901083,
+  "static_150km": {
+    "Physarum (10 seeds)": 0.96,
+    "Augmented MST": 0.9333333333333333,
+    "Terminal MST": 0.7966666666666666
+  },
+  "recovery": {
+    "seed": 7,
+    "before": {
+      "total_km": 10034.549882328187,
+      "detour": 1.3384094625891199,
+      "connected_pairs": 120,
+      "pairs": 120
+    },
+    "immediate": {
+      "total_km": 9451.53718043597,
+      "detour": 1.5237250035335652,
+      "connected_pairs": 105,
+      "pairs": 120
+    },
+    "after": {
+      "total_km": 9513.139720814412,
+      "detour": 1.5992786851926628,
+      "connected_pairs": 120,
+      "pairs": 120
+    },
+    "block_center": [
+      511.30306364085845,
+      354.8609690826527
+    ],
+    "radius_km": 150.0
+  }
+}

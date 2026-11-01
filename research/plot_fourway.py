@@ -7,8 +7,9 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
+from research.network_artifacts import load_masks, load_mask
 import physarum_india as p
-D=Path('out');g=p.build_geometry();b=np.load(D/'baseline_masks.npz');a=np.load(D/'augmented_mst_mask.npy');m=json.loads((D/'benchmark_metrics.json').read_text())
+D=Path('out');g=p.build_geometry();b=load_masks(D/'baseline_masks.npz',g);a=load_mask(D/'augmented_mst_mask.npy',g);m=json.loads((D/'benchmark_metrics.json').read_text())
 M={'Physarum':b['Physarum'],'MST':b['terminal_MST_expanded'],'Delhi shortest-path union':b['Delhi_shortest_path_union'],'Augmented MST':a}
 C=['#f3ae33','#58bcd1','#a889ed','#a5e37b']
 plt.rcParams.update({'font.family':'DejaVu Sans','figure.facecolor':'#070a0f','savefig.facecolor':'#070a0f','text.color':'#edf2f7'})

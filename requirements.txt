@@ -5,3 +5,10 @@ matplotlib>=3.7,<4
 pyproj>=3.5,<4
 # For running validation tests:
 pytest>=8,<10
+# Simplifying rail lines for drawing (research/fullres_rail_analysis.py):
+shapely>=2.0,<3
+
+# Strict publication checks and verified HTTPS source download:
+pypdf>=6,<7
+pillow>=10,<14
+certifi>=2024

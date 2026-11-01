@@ -11,14 +11,15 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 sys.path.insert(0,str(ROOT/'research'))
 from research.benchmark import network_metrics
+from research.network_artifacts import load_masks, load_mask
 import physarum_india as p
 
 
 def check():
-    out=ROOT/'out';g=p.build_geometry();mask=np.load(out/'baseline_masks.npz')
+    out=ROOT/'out';g=p.build_geometry();mask=load_masks(out/'baseline_masks.npz',g)
     bench=json.loads((out/'benchmark_metrics.json').read_text())
     augmented=json.loads((out/'augmented_mst_metrics.json').read_text())
-    augmented_mask=np.load(out/'augmented_mst_mask.npy')
+    augmented_mask=load_mask(out/'augmented_mst_mask.npy',g)
     assert augmented_mask.dtype==bool
     named={'Physarum':mask['Physarum'], 'terminal_MST_expanded':mask['terminal_MST_expanded'],
            'Delhi_shortest_path_union':mask['Delhi_shortest_path_union'],
@@ -49,16 +50,8 @@ def check():
             assert math.isclose(got,expected,abs_tol=1e-10),(name,t,got,expected)
     shifts=json.loads((out/'raster_position_sensitivity.json').read_text())
     assert len(shifts['perturbations'])==9
-    video=out/'slime_india_v4.mp4'
-    assert video.stat().st_size>200_000
-    try:
-        r=subprocess.run(['ffprobe','-v','error','-show_entries','format=duration',
-                          '-of','default=noprint_wrappers=1:nokey=1',str(video)],
-                         check=True,capture_output=True,text=True)
-        assert 29.5<float(r.stdout.strip())<30.5
-    except FileNotFoundError:
-        print('FFprobe unavailable; video duration not checked')
-    print('PASS: saved graph masks, metrics, length budget, corrected heuristic, proximity, raster and media are internally consistent.')
+    # Historical videos are retained as history; the strict v4.2 gate validates current media.
+    print('PASS: saved graph masks, metrics, length budget, corrected heuristic, proximity and raster are internally consistent.')
     print('CAUTION: does not validate source GIS currency or physical railway topology.')
 
 if __name__=='__main__':check()

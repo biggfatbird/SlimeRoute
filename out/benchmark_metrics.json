@@ -6,7 +6,7 @@
   "damage_location_selection": "random spatially separated centers on union of three network edge sets, outside radius+35 km of any city; no connectivity filtering",
   "unaffected": {
     "Physarum": {
-      "length_km_approx": 10034.549882328189,
+      "length_km_approx": 10034.549882328187,
       "terrain_weighted_km_approx": 10461.249409699372,
       "edges": 315,
       "connected_pairs": 120,
@@ -15,7 +15,7 @@
       "max_detour_reachable_only": 2.578013372179157
     },
     "terminal_MST_expanded": {
-      "length_km_approx": 6335.9927238132,
+      "length_km_approx": 6335.992723813201,
       "terrain_weighted_km_approx": 6691.165307710682,
       "edges": 200,
       "connected_pairs": 120,
@@ -24,7 +24,7 @@
       "max_detour_reachable_only": 4.133379145959949
     },
     "Delhi_shortest_path_union": {
-      "length_km_approx": 12703.555308033609,
+      "length_km_approx": 12703.55530803361,
       "terrain_weighted_km_approx": 13081.925151009851,
       "edges": 361,
       "connected_pairs": 120,
@@ -34,27 +34,27 @@
     }
   },
   "flow_conservation": {
-    "max_nodal_flux_error": 4.819820923418956e-13,
-    "relative_flux_error": 8.669939784392352e-14
+    "max_nodal_flux_error": 4.353120331797997e-13,
+    "relative_flux_error": 8.360286395834173e-14
   },
   "damage_summary": {
     "Physarum": {
       "locations": 25,
-      "mean_connected_pairs": 117.6,
+      "mean_connected_pairs": 118.2,
       "min_connected_pairs": 105,
-      "fraction_all_120_stay_connected": 0.84
+      "fraction_all_120_stay_connected": 0.88
     },
     "terminal_MST_expanded": {
       "locations": 25,
-      "mean_connected_pairs": 99.88,
+      "mean_connected_pairs": 97.44,
       "min_connected_pairs": 56,
-      "fraction_all_120_stay_connected": 0.44
+      "fraction_all_120_stay_connected": 0.4
     },
     "Delhi_shortest_path_union": {
       "locations": 25,
-      "mean_connected_pairs": 90.2,
-      "min_connected_pairs": 16,
-      "fraction_all_120_stay_connected": 0.16
+      "mean_connected_pairs": 87.04,
+      "min_connected_pairs": 24,
+      "fraction_all_120_stay_connected": 0.12
     }
   }
 }

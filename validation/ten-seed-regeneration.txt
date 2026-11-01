@@ -1,0 +1,11 @@
+seed  1 length=   9515km detour=1.377 intact_fraction=0.92
+seed  2 length=   9643km detour=1.374 intact_fraction=0.92
+seed  3 length=  10105km detour=1.374 intact_fraction=0.92
+seed  4 length=   9980km detour=1.374 intact_fraction=0.92
+seed  5 length=   9763km detour=1.462 intact_fraction=0.84
+seed  6 length=   9913km detour=1.456 intact_fraction=0.84
+seed  7 length=  10035km detour=1.338 intact_fraction=0.92
+seed 11 length=  10405km detour=1.363 intact_fraction=0.92
+seed 21 length=   9901km detour=1.464 intact_fraction=0.84
+seed 42 length=   9894km detour=1.451 intact_fraction=0.84
+FINISHED

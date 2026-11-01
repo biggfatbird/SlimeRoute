@@ -1,0 +1,26 @@
+{
+  "seed": 7,
+  "before": {
+    "total_km": 10034.549882328187,
+    "detour": 1.3384094625891199,
+    "connected_pairs": 120,
+    "pairs": 120
+  },
+  "immediate": {
+    "total_km": 9451.53718043597,
+    "detour": 1.5237250035335652,
+    "connected_pairs": 105,
+    "pairs": 120
+  },
+  "after": {
+    "total_km": 9513.139720814412,
+    "detour": 1.5992786851926628,
+    "connected_pairs": 120,
+    "pairs": 120
+  },
+  "block_center": [
+    511.30306364085845,
+    354.8609690826527
+  ],
+  "radius_km": 150.0
+}

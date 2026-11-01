@@ -1,0 +1,5 @@
+grown 10 Physarum networks
+radius 100 km: {'Terminal MST': 0.823, 'Delhi shortest-path union': 0.61, 'Augmented MST': 0.957, 'Physarum (10 seeds)': 0.953}
+radius 150 km: {'Terminal MST': 0.797, 'Delhi shortest-path union': 0.607, 'Augmented MST': 0.933, 'Physarum (10 seeds)': 0.96}
+radius 200 km: {'Terminal MST': 0.833, 'Delhi shortest-path union': 0.563, 'Augmented MST': 0.92, 'Physarum (10 seeds)': 0.947}
+wrote out/resilience_study.json

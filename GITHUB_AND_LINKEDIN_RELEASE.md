@@ -1,3 +1,5 @@
+> HISTORICAL v4.1 / earlier document. For the repaired local supplement use README.md and REPAIR_REPORT.md. Its release status and numbers have not been updated here.
+
 # SLIMEROUTE public release — exact checklist
 
 This repository contains the complete audited scientific-computing experiment and historical assets.

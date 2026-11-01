@@ -1,0 +1,2 @@
+PASS: saved graph masks, metrics, length budget, corrected heuristic, proximity and raster are internally consistent.
+CAUTION: does not validate source GIS currency or physical railway topology.

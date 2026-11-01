@@ -29,11 +29,11 @@
     "Physarum": {
       "sampled_model_length_km": 9976.567043704486,
       "model_sample_count": 2130,
-      "median_model_point_to_railcell_km": 11.024880420878072,
-      "median_railcell_to_model_km": 94.28836101410873,
+      "median_model_point_to_railcell_km": 11.024880420878075,
+      "median_railcell_to_model_km": 94.28836101410946,
       "thresholds": {
         "25": {
-          "fraction_model_length_within_km_of_mapped_track_cells": 0.891981403599448,
+          "fraction_model_length_within_km_of_mapped_track_cells": 0.8919814035994477,
           "fraction_occupied_rail_cells_within_km_of_model": 0.18371872030408615
         },
         "50": {
@@ -51,13 +51,13 @@
       }
     },
     "Terminal_MST": {
-      "sampled_model_length_km": 6285.813232305538,
+      "sampled_model_length_km": 6285.813232305532,
       "model_sample_count": 1318,
-      "median_model_point_to_railcell_km": 10.046476745410832,
-      "median_railcell_to_model_km": 110.78857214946775,
+      "median_model_point_to_railcell_km": 10.046476745410418,
+      "median_railcell_to_model_km": 110.78857214946864,
       "thresholds": {
         "25": {
-          "fraction_model_length_within_km_of_mapped_track_cells": 0.9173704472294509,
+          "fraction_model_length_within_km_of_mapped_track_cells": 0.917370447229451,
           "fraction_occupied_rail_cells_within_km_of_model": 0.1447576813430472
         },
         "50": {
@@ -75,13 +75,13 @@
       }
     },
     "Delhi_shortest_path_union": {
-      "sampled_model_length_km": 12593.55128160249,
+      "sampled_model_length_km": 12593.551281602497,
       "model_sample_count": 2630,
-      "median_model_point_to_railcell_km": 12.224485161876228,
-      "median_railcell_to_model_km": 74.14176027670192,
+      "median_model_point_to_railcell_km": 12.224485161876313,
+      "median_railcell_to_model_km": 74.14176027670186,
       "thresholds": {
         "25": {
-          "fraction_model_length_within_km_of_mapped_track_cells": 0.7980176847262039,
+          "fraction_model_length_within_km_of_mapped_track_cells": 0.7980176847262035,
           "fraction_occupied_rail_cells_within_km_of_model": 0.20367437440608172
         },
         "50": {
@@ -99,13 +99,13 @@
       }
     },
     "Augmented_MST": {
-      "sampled_model_length_km": 9967.41787128388,
+      "sampled_model_length_km": 9967.417871283873,
       "model_sample_count": 2100,
-      "median_model_point_to_railcell_km": 10.487549873605102,
+      "median_model_point_to_railcell_km": 10.487549873605156,
       "median_railcell_to_model_km": 87.11976309962475,
       "thresholds": {
         "25": {
-          "fraction_model_length_within_km_of_mapped_track_cells": 0.8767871512731363,
+          "fraction_model_length_within_km_of_mapped_track_cells": 0.8767871512731362,
           "fraction_occupied_rail_cells_within_km_of_model": 0.19892302819132088
         },
         "50": {
@@ -113,7 +113,7 @@
           "fraction_occupied_rail_cells_within_km_of_model": 0.3370288248337029
         },
         "75": {
-          "fraction_model_length_within_km_of_mapped_track_cells": 0.996186557138588,
+          "fraction_model_length_within_km_of_mapped_track_cells": 0.9961865571385877,
           "fraction_occupied_rail_cells_within_km_of_model": 0.4567627494456763
         },
         "100": {

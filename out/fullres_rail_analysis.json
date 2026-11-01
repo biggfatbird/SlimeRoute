@@ -1,0 +1,96 @@
+{
+  "source": "datta07/INDIAN-SHAPEFILES INDIA/INDIAN_RAILWAYS.geojson (git blob 63ff14b3f3b62a6d18d4950e9ab4ba99a3c5c16d)",
+  "features_used": 29946,
+  "features_total": 29947,
+  "vertices": 738962,
+  "polyline_km": 86386.84527901083,
+  "tolerances_km": [
+    5,
+    10,
+    25,
+    50
+  ],
+  "proximity": {
+    "Physarum": {
+      "model_km": 9990.284174287834,
+      "median_dist_km": 9.49662479022167,
+      "model_length_within": {
+        "5": 0.2971261242354644,
+        "10": 0.5268445903257669,
+        "25": 0.8674838086492354,
+        "50": 0.9895694258543912
+      },
+      "rail_length_within_model": {
+        "5": 0.05852134217668367,
+        "10": 0.11184602796809304,
+        "25": 0.22839785736217208,
+        "50": 0.3629838170761455
+      }
+    },
+    "Terminal MST": {
+      "model_km": 6292.059749902678,
+      "median_dist_km": 6.944064697662172,
+      "model_length_within": {
+        "5": 0.3999631048840476,
+        "10": 0.6359115857673421,
+        "25": 0.9088640283689243,
+        "50": 0.9968552321452555
+      },
+      "rail_length_within_model": {
+        "5": 0.05418936103233364,
+        "10": 0.09916790854557264,
+        "25": 0.19508046931455506,
+        "50": 0.3211903120238317
+      }
+    },
+    "Delhi shortest-path union": {
+      "model_km": 12604.246171833995,
+      "median_dist_km": 11.792871538741096,
+      "model_length_within": {
+        "5": 0.24537768406910845,
+        "10": 0.43852407934807525,
+        "25": 0.7621739888421191,
+        "50": 0.9698630505141882
+      },
+      "rail_length_within_model": {
+        "5": 0.05815887697940193,
+        "10": 0.1158697835596669,
+        "25": 0.2475997982825882,
+        "50": 0.4153055207412156
+      }
+    },
+    "Augmented MST": {
+      "model_km": 9977.457486307547,
+      "median_dist_km": 8.273498959576466,
+      "model_length_within": {
+        "5": 0.35087012285229713,
+        "10": 0.5658325632356911,
+        "25": 0.8603228154492542,
+        "50": 0.9737952710127943
+      },
+      "rail_length_within_model": {
+        "5": 0.07028837925688927,
+        "10": 0.1262583191274739,
+        "25": 0.2454002497104571,
+        "50": 0.39060068407737847
+      }
+    }
+  },
+  "rail_topology": {
+    "stitch_km": 0.6,
+    "components": 1,
+    "largest_component_share": 1.0,
+    "pairs": 120,
+    "pairs_connected": 120,
+    "mean_detour": 1.2742333331384572,
+    "median_detour": 1.2689793943297323,
+    "p90_detour": 1.3922801962330191,
+    "max_snap_km": 7.919093281597119
+  },
+  "rail_detour_vs_stitch_tolerance_km": {
+    "0.1": 1.2780144380177125,
+    "0.3": 1.2761754910431091,
+    "1.5": 1.264415268063679
+  },
+  "notes": "Common lattice-snapped terminals; rail access legs included. Undirected links deduplicated by minimum length. Planar AEQD km. Rail km counts parallel/duplicate tracks. Proximity is not topology; mean_detour for rail is for the ENTIRE mapped network, which has far more track than the 16-city models."
+}

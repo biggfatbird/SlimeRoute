@@ -1,3 +1,5 @@
+> HISTORICAL v4.1 / earlier document. For the repaired local supplement use README.md and REPAIR_REPORT.md. Its release status and numbers have not been updated here.
+
 # SLIMEROUTE v4.1 — pre-publication technical audit
 
 **Audit date:** 2026-11-01  

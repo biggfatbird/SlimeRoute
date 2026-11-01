@@ -212,6 +212,8 @@ def build_geometry():
     pts = pts[keep]
     pairs = remap[pairs]
     pairs = pairs[(pairs >= 0).all(axis=1)]
+    # Canonical edge order: spatial-tree traversal order is not an artifact format.
+    pairs = pairs[np.lexsort((pairs[:, 1], pairs[:, 0]))]
     I, J = pairs[:, 0], pairs[:, 1]
 
     lon, lat = unproj(pts[:, 0], pts[:, 1])

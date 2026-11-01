@@ -1,0 +1,6 @@
+[  17.0s] grown: 10035 km, detour 1.3384
+[  25.6s] after block: immediate 105/120, adapted 120/120
+[  48.1s] growth rendered
+[  55.0s] comparison rendered
+[  60.2s] disruption rendered
+[  60.7s] video written: /Users/shankersingh/Documents/Codex/2026-11-01/referenced-chatgpt-conversation-this-is-an/work/repaired/out/slime_india_final.mp4 (812 frames, 27.1 s)

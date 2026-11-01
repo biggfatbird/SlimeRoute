@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import numpy as np
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+from research.network_artifacts import load_masks
 from research.benchmark import baselines,network_metrics,sample_damage_centers,blocked_mask,city_pair_mask
 import physarum_india as p
 SEEDS=[1,2,3,4,5,6,7,11,21,42]
@@ -14,9 +15,7 @@ def main():
     fixed_centers=sample_damage_centers(geo,np.logical_or.reduce(list(bases.values())),RADIUS,SITES,seed=20261031)
     expected=len(geo['names'])*(len(geo['names'])-1)//2;result=[]
     for seed in SEEDS:
-        s=p.Slime(geo,seed)
-        for _ in range(p.T_GROW):s.step()
-        mask=city_pair_mask(geo,s.D,s.alive,p.REL_THR)
+        mask=load_masks(Path('out/physarum_seed_masks.npz'),geo)[str(seed)]
         baseline=network_metrics(geo,mask)
         counts=[network_metrics(geo,mask & blocked_mask(geo,c,RADIUS))['connected_pairs'] for c in fixed_centers]
         entry={'seed':seed,'no_damage':baseline,'damage_sites':SITES,

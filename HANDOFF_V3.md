@@ -1,3 +1,5 @@
+> HISTORICAL v4.1 / earlier document. For the repaired local supplement use README.md and REPAIR_REPORT.md. Its release status and numbers have not been updated here.
+
 # Current handoff — SLIMEROUTE v3
 
 ## Status: rigorous illustrative study; real-infrastructure evaluation incomplete

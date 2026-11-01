@@ -1,0 +1,993 @@
+--- a/.github/workflows/tests.yml
++++ b/.github/workflows/tests.yml
+@@ -13,7 +13,9 @@
+       - uses: actions/setup-python@v5
+         with:
+           python-version: ${{ matrix.python-version }}
++      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+       - run: python -m pip install -r requirements.txt
+       - run: PYTHONPATH=. python -m pytest -q tests
+       - run: python scripts/prepublish_check.py
++      - run: python research/download_real_tracks.py
+       - run: python scripts/prepublish_check_v42.py
+--- a/physarum_india.py
++++ b/physarum_india.py
+@@ -212,6 +212,8 @@
+     pts = pts[keep]
+     pairs = remap[pairs]
+     pairs = pairs[(pairs >= 0).all(axis=1)]
++    # Canonical edge order: spatial-tree traversal order is not an artifact format.
++    pairs = pairs[np.lexsort((pairs[:, 1], pairs[:, 0]))]
+     I, J = pairs[:, 0], pairs[:, 1]
+ 
+     lon, lat = unproj(pts[:, 0], pts[:, 1])
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -7,3 +7,8 @@
+ pytest>=8,<10
+ # Simplifying rail lines for drawing (research/fullres_rail_analysis.py):
+ shapely>=2.0,<3
++
++# Strict publication checks and verified HTTPS source download:
++pypdf>=6,<7
++pillow>=10,<14
++certifi>=2024
+--- a/research/benchmark.py
++++ b/research/benchmark.py
+@@ -177,7 +177,8 @@
+                    'damage_summary':summary},f,indent=2)
+     with open(output/'damage_locations.csv','w',newline='') as f:
+         writer=csv.DictWriter(f,fieldnames=list(damage[0]));writer.writeheader();writer.writerows(damage)
+-    np.savez_compressed(output/'baseline_masks.npz',**nets)
++    from research.network_artifacts import save_masks
++    save_masks(output/'baseline_masks.npz',geo,**nets)
+     return all_metrics,numerics,summary
+ 
+ 
+--- a/research/compare_rail_raster.py
++++ b/research/compare_rail_raster.py
+@@ -14,6 +14,7 @@
+ from matplotlib.collections import LineCollection
+ from matplotlib.lines import Line2D
+ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
++from research.network_artifacts import load_masks, load_mask
+ import physarum_india as p
+ from build_rail_raster import decode
+ 
+@@ -94,10 +95,10 @@
+ 
+ if __name__=='__main__':
+     geo=p.build_geometry();rail,lonlat,rmetric=rail_points()
+-    src=np.load(MODEL_DIR/'out'/'baseline_masks.npz')
++    src=load_masks(MODEL_DIR/'out'/'baseline_masks.npz',geo)
+     masks={'Physarum':src['Physarum'], 'Terminal_MST':src['terminal_MST_expanded'],
+            'Delhi_shortest_path_union':src['Delhi_shortest_path_union'],
+-           'Augmented_MST':np.load(MODEL_DIR/'out'/'augmented_mst_mask.npy')}
++           'Augmented_MST':load_mask(MODEL_DIR/'out'/'augmented_mst_mask.npy',geo)}
+     vals={key:compare(geo,rmetric,mask) for key,mask in masks.items()}
+     data={'description':'Proximity between model lattice network and rasterized actual railway-line geometries (NOT railway route connectivity)',
+           'source':SOURCE,'source_git_blob_sha':SHA,'railway_line_features_in_source':29946,
+--- a/research/download_real_tracks.py
++++ b/research/download_real_tracks.py
+@@ -5,6 +5,8 @@
+ """
+ from pathlib import Path
+ import hashlib
++import ssl
++import certifi
+ from urllib.request import Request, urlopen
+ 
+ URL='https://raw.githubusercontent.com/datta07/INDIAN-SHAPEFILES/master/INDIA/INDIAN_RAILWAYS.geojson'
+@@ -15,7 +17,7 @@
+ def main():
+     print('Downloading 34 MB of line geometry (source: datta07/INDIAN-SHAPEFILES)...')
+     req=Request(URL,headers={'User-Agent':'SLIMEROUTE-study/1.0'})
+-    with urlopen(req, timeout=60) as r:
++    with urlopen(req, timeout=60, context=ssl.create_default_context(cafile=certifi.where())) as r:
+         buf=r.read(70_000_001)
+     if len(buf)>70_000_000:
+         raise ValueError('Source unexpectedly large; refusing to save')
+--- a/research/equal_budget.py
++++ b/research/equal_budget.py
+@@ -50,5 +50,6 @@
+     pa=argparse.ArgumentParser();pa.add_argument('--budget-km',type=float,default=10034.549882328189);pa.add_argument('--out',default='out')
+     a=pa.parse_args();geo=p.build_geometry();mask,add=augmented_tree(geo,a.budget_km);m=network_metrics(geo,mask)
+     print(json.dumps({'metrics':m,'additions':add},indent=2))
+-    np.save(Path(a.out)/'augmented_mst_mask.npy',mask)
++    from research.network_artifacts import save_masks
++    save_masks(Path(a.out)/'augmented_mst_mask.npy',geo,mask=mask)
+     (Path(a.out)/'augmented_mst_metrics.json').write_text(json.dumps({'budget_km':a.budget_km,'metrics':m,'additions':add,'description':'greedy reduction of terrain-weighted all-pairs route cost, physical-length budget, same lattice, nonoptimal heuristic'},indent=2))
+--- a/research/fullres_rail_analysis.py
++++ b/research/fullres_rail_analysis.py
+@@ -1,4 +1,4 @@
+-"""Full-resolution comparison with mapped railway LINE geometry (v5).
++"""Full-resolution comparison with mapped railway LINE geometry (v4.2 repaired).
+ 
+ Replaces the coarse 0.2-degree raster check from v4. Two questions, same data:
+ 
+@@ -11,12 +11,13 @@
+ Outputs:                       out/fullres_rail_analysis.json, data/rail_lines_simplified.npz
+ 
+ All distances are planar kilometres in an azimuthal-equidistant projection centred on 22N, 82E
+-(error well under 2% across India). Railway kilometres count parallel/duplicate tracks and are NOT
++(projection distortion varies across India; these are not geodesic lengths). Railway kilometres count parallel/duplicate tracks and are NOT
+ Indian Railways route-km.
+ """
+ from __future__ import annotations
+ 
+ import argparse
++import hashlib
+ import json
+ import sys
+ from pathlib import Path
+@@ -29,6 +30,7 @@
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+ sys.path.insert(0, str(ROOT))
++from research.network_artifacts import load_masks, load_mask
+ import physarum_india as p  # noqa: E402
+ 
+ AEQD = CRS.from_proj4("+proj=aeqd +lat_0=22 +lon_0=82 +datum=WGS84 +units=m +no_defs")
+@@ -36,6 +38,17 @@
+ TOLERANCES_KM = (5, 10, 25, 50)
+ STITCH_KM = 0.6
+ INDIA_BOX = (66.0, 99.0, 6.0, 38.0)  # lon_min, lon_max, lat_min, lat_max
++
++
++EXPECTED_SOURCE_GIT_SHA = "63ff14b3f3b62a6d18d4950e9ab4ba99a3c5c16d"
++
++
++def verify_source(path):
++    buf = Path(path).read_bytes()
++    actual = hashlib.sha1(f"blob {len(buf)}\0".encode() + buf).hexdigest()
++    if actual != EXPECTED_SOURCE_GIT_SHA:
++        raise ValueError(f"Rail source hash mismatch: {actual}")
++    return actual
+ 
+ 
+ def load_lines(path):
+@@ -109,10 +122,17 @@
+     ea = np.r_[sa, extra[:, 0]]
+     eb = np.r_[sb, extra[:, 1]]
+     ew = np.r_[sw, np.linalg.norm(V[extra[:, 0]] - V[extra[:, 1]], axis=1)]
+-    G = coo_matrix((ew, (ea, eb)), shape=(N, N)).tocsr()
++    low, high = np.minimum(ea, eb), np.maximum(ea, eb)
++    order = np.lexsort((ew, high, low))
++    low, high, ew = low[order], high[order], ew[order]
++    first = np.r_[True, (low[1:] != low[:-1]) | (high[1:] != high[:-1])]
++    low, high, ew = low[first], high[first], ew[first]
++    G = coo_matrix((np.r_[ew, ew], (np.r_[low, high], np.r_[high, low])), shape=(N, N)).tocsr()
+     ncomp, lab = connected_components(G, directed=False)
+     snap_d, snap_i = tree.query(city_km)
+     D = dijkstra(G, directed=False, indices=snap_i)[:, snap_i]
++    # Include terminal-to-vertex access legs, on common lattice terminal coordinates.
++    D = D + snap_d[:, None] + snap_d[None, :]
+     straight = np.linalg.norm(city_km[:, None] - city_km[None], axis=2)
+     iu = np.triu_indices(len(city_km), 1)
+     ok = np.isfinite(D[iu])
+@@ -170,13 +190,15 @@
+     return [c[o[i]:o[i + 1]] for i in range(len(o) - 1)]
+ 
+ 
+-def network_masks(out_dir):
+-    bm = np.load(out_dir / "baseline_masks.npz")
++def network_masks(out_dir, geo=None):
++    if geo is None:
++        geo = p.build_geometry()
++    bm = load_masks(out_dir / "baseline_masks.npz", geo)
+     return {
+         "Physarum": bm["Physarum"],
+         "Terminal MST": bm["terminal_MST_expanded"],
+         "Delhi shortest-path union": bm["Delhi_shortest_path_union"],
+-        "Augmented MST": np.load(out_dir / "augmented_mst_mask.npy"),
++        "Augmented MST": load_mask(out_dir / "augmented_mst_mask.npy", geo),
+     }
+ 
+ 
+@@ -188,6 +210,7 @@
+     ap.add_argument("--no-simplified", action="store_true")
+     args = ap.parse_args()
+ 
++    verify_source(args.tracks)
+     lines, n_feats = load_lines(args.tracks)
+     V, start, lens = lines_to_km(lines)
+     assert_physical_tracks(V, start, lens)
+@@ -200,7 +223,7 @@
+     for name, r in prox.items():
+         print(f"{name:28s}", "  ".join(f"{t}km {r['model_length_within'][str(t)]:.1%}" for t in TOLERANCES_KM))
+ 
+-    clon, clat = p.unproj(geo["city_xy"][:, 0], geo["city_xy"][:, 1])
++    clon, clat = p.unproj(geo["pts"][geo["city_node"], 0], geo["pts"][geo["city_node"], 1])
+     cx, cy = TO_M.transform(clon, clat)
+     city_km = np.c_[cx, cy] / 1000.0
+     topo = rail_topology(V, start, lens, city_km)
+@@ -213,7 +236,7 @@
+         features_used=len(lines), features_total=n_feats, vertices=int(len(V)),
+         polyline_km=float(rail_w.sum()), tolerances_km=list(TOLERANCES_KM),
+         proximity=prox, rail_topology=topo, rail_detour_vs_stitch_tolerance_km=sens,
+-        notes="Planar AEQD km. Rail km counts parallel/duplicate tracks. Proximity is not topology; "
++        notes="Common lattice-snapped terminals; rail access legs included. Undirected links deduplicated by minimum length. Planar AEQD km. Rail km counts parallel/duplicate tracks. Proximity is not topology; "
+               "mean_detour for rail is for the ENTIRE mapped network, which has far more track than the 16-city models.",
+     )
+     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+--- a/research/make_carousel.py
++++ b/research/make_carousel.py
+@@ -64,7 +64,7 @@
+ 
+ def slide_rule(n, gamma):
+     fig = page(n)
+-    fig.text(0.07, 0.93, "NO CENTRAL PLANNER.", color=GOLD, fontsize=13, fontweight="bold", va="center")
++    fig.text(0.07, 0.93, "FLOW-DRIVEN ADAPTATION", color=GOLD, fontsize=13, fontweight="bold", va="center")
+     fig.text(0.07, 0.865, "How the network grows", color=TXT, fontsize=30, fontweight="bold", va="center")
+     rows = [("1", "Push flow", "Random city pairs send current through the whole mesh\nof ~35,000 candidate routes (a global flow solve)."),
+             ("2", "Reinforce", "Each route thickens or thins based on its own flux."),
+@@ -134,9 +134,9 @@
+     ax2.set_ylim(0, 118)
+     ax2.set_ylabel("% of zones", color=MUTED, fontsize=9)
+     ax2.tick_params(axis="x", labelsize=9.5, colors=TXT)
+-    fig.text(0.07, 0.425, f"Share of {res['sites_per_radius']} random 150 km blocked zones that leave all 120 city pairs connected",
++    fig.text(0.07, 0.425, "All 120 pairs connected after 150-km static damage",
+              color=TXT, fontsize=11, fontweight="bold", va="center")
+-    fig.text(0.07, 0.062, "Static damage, no re-adaptation; zones drawn uniformly at random. Physarum bar: mean of 10 seeds, error bar = 1 SD.\n"
++    fig.text(0.07, 0.062, "Static, city-excluding lattice zones; no re-adaptation. Physarum bar: mean of 10 seeds, error bar = 1 SD.\n"
+              "Approximate geography and synthetic terrain.", color=MUTED, fontsize=7.8, va="center", linespacing=1.5)
+     return fig
+ 
+@@ -144,15 +144,15 @@
+ def slide_limits(n):
+     fig = page(n)
+     fig.text(0.07, 0.94, "HONEST SCORECARD", color=GOLD, fontsize=13, fontweight="bold", va="center")
+-    fig.text(0.07, 0.885, "What this shows, and what it doesn't", color=TXT, fontsize=25, fontweight="bold", va="center")
++    fig.text(0.07, 0.885, "What this experiment shows", color=TXT, fontsize=25, fontweight="bold", va="center")
+     blocks = [("SHOWS", GREEN, ["Flux-driven reinforcement grows a connected, redundant\n16-city network (10 of 10 seeds)",
+-                              "Under random damage it is about as resilient as a\npurpose-built graph heuristic, and more than a tree"]),
++                              "Under random damage it is about as resilient as a\npurpose-built graph heuristic, and more resilient than these tree baselines"]),
+               ("DOES NOT SHOW", "#ff7a7a", ["That slime mold beats engineers: a simple graph\nheuristic found shorter routes",
+-                                            "That it reproduces Indian Railways: no operations,\ntopology or demand",
++                                            "That it reproduces Indian Railways: no verified junctions,\ntopology or demand",
+                                             "Real elevation, rivers or construction cost"]),
+               ("NEXT", BLUE, ["Real population and freight demand",
+                               "Rivers and elevation in the cost model",
+-                              "Comparing against real rail topology, route by route"])]
++                              "Validate physical junctions and station-level routes"])]
+     y = 0.80
+     for head, color, items in blocks:
+         fig.text(0.07, y, head, color=color, fontsize=12.5, fontweight="bold", va="center")
+@@ -164,7 +164,7 @@
+             y -= 0.046 + 0.026 * (lines - 1)
+         y -= 0.022
+     fig.add_artist(plt.Line2D([0.07, 0.93], [0.135, 0.135], color=LINE, lw=1, transform=fig.transFigure))
+-    fig.text(0.07, 0.093, "Code, tests and full method on GitHub (link in the post).", color=TXT, fontsize=11.5, fontweight="bold", va="center")
++    fig.text(0.07, 0.093, "Public v4.1 code; extra results in the local v4.2 supplement.", color=TXT, fontsize=11.5, fontweight="bold", va="center")
+     fig.text(0.07, 0.058, "Model: Tero et al., Science 327 (2010).  Rail GIS: datta07/INDIAN-SHAPEFILES (third-party).",
+              color=MUTED, fontsize=8.6, va="center")
+     return fig
+@@ -184,6 +184,15 @@
+     for i in (2, 3, 5):
+         for t in list(slides[i].texts):
+             t.remove()
++    for index, fig in enumerate(slides):
++        if index in (2, 3, 5):
++            continue
++        fig.canvas.draw()
++        renderer = fig.canvas.get_renderer()
++        for text in fig.texts:
++            bounds = text.get_window_extent(renderer)
++            if bounds.x0 < -1 or bounds.x1 > fig.bbox.width + 1:
++                raise ValueError(f"Slide {index+1} text exceeds page width: {text.get_text()}")
+     (OUT / "carousel").mkdir(exist_ok=True)
+     with PdfPages(OUT / "slimeroute_carousel.pdf") as pdf:
+         for i, fig in enumerate(slides, 1):
+--- a/research/media_validation.py
++++ b/research/media_validation.py
+@@ -0,0 +1,41 @@
++"""Validate published media without silently skipping a missing tool."""
++import json
++import re
++import shutil
++import subprocess
++from pathlib import Path
++
++
++def check_media(out):
++    ffmpeg = shutil.which('ffmpeg')
++    if ffmpeg is None:
++        raise RuntimeError('FFmpeg is required for the publication gate')
++    video = Path(out) / 'slime_india_final.mp4'
++    info = subprocess.run([ffmpeg, '-hide_banner', '-i', str(video)], capture_output=True, text=True).stderr
++    duration = re.search(r'Duration: (\d+):(\d+):([\d.]+)', info)
++    if not duration:
++        raise AssertionError('Cannot read video duration')
++    hours, minutes, seconds = map(float, duration.groups())
++    assert 26 < hours*3600 + minutes*60 + seconds < 29, info
++    assert re.search(r'Video: h264.*1080x1350', info), info
++    assert 'Audio:' not in info, 'Expected silent video'
++    subprocess.run([ffmpeg, '-v', 'error', '-i', str(video), '-f', 'null', '-'], check=True, capture_output=True)
++    from PIL import Image
++    from pypdf import PdfReader
++    paths = sorted((Path(out)/'carousel').glob('slide_*.png'))
++    assert len(paths) == 7
++    for path in paths:
++        with Image.open(path) as im:
++            assert im.size == (1080,1350)
++            im.verify()
++    assert len(PdfReader(Path(out)/'slimeroute_carousel.pdf').pages) == 7
++    manifest = json.loads((Path(out)/'publication_numbers.json').read_text())
++    read=lambda name: json.loads((Path(out)/name).read_text())
++    assert manifest['seed7']==read('benchmark_metrics.json')['unaffected']['Physarum']
++    assert manifest['heuristic']==read('augmented_mst_metrics.json')['metrics']
++    assert manifest['preliminary_rail_detour']==read('fullres_rail_analysis.json')['rail_topology']['mean_detour']
++    assert manifest['recovery']==read('recovery_v42.json')
++    rs=read('resilience_study.json')['results']['150']
++    for key,value in manifest['static_150km'].items():
++        assert value==rs[key]['fraction_all_pairs_connected']
++    assert manifest['scope'] == 'Local validated supplement; public repository remains v4.1'
+--- a/research/multi_seed.py
++++ b/research/multi_seed.py
+@@ -4,6 +4,7 @@
+ import sys
+ import numpy as np
+ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
++from research.network_artifacts import load_masks
+ from research.benchmark import baselines,network_metrics,sample_damage_centers,blocked_mask,city_pair_mask
+ import physarum_india as p
+ SEEDS=[1,2,3,4,5,6,7,11,21,42]
+@@ -14,9 +15,7 @@
+     fixed_centers=sample_damage_centers(geo,np.logical_or.reduce(list(bases.values())),RADIUS,SITES,seed=20261031)
+     expected=len(geo['names'])*(len(geo['names'])-1)//2;result=[]
+     for seed in SEEDS:
+-        s=p.Slime(geo,seed)
+-        for _ in range(p.T_GROW):s.step()
+-        mask=city_pair_mask(geo,s.D,s.alive,p.REL_THR)
++        mask=load_masks(Path('out/physarum_seed_masks.npz'),geo)[str(seed)]
+         baseline=network_metrics(geo,mask)
+         counts=[network_metrics(geo,mask & blocked_mask(geo,c,RADIUS))['connected_pairs'] for c in fixed_centers]
+         entry={'seed':seed,'no_damage':baseline,'damage_sites':SITES,
+--- a/research/network_artifacts.py
++++ b/research/network_artifacts.py
+@@ -0,0 +1,57 @@
++"""Masks carry explicit geometry identities and a content checksum, never an implicit edge order."""
++from pathlib import Path
++import hashlib
++import numpy as np
++
++
++def save_masks(path, geo, **masks):
++    path = Path(path)
++    for mask in masks.values():
++        if mask.dtype != bool or mask.shape != geo["I"].shape:
++            raise ValueError("Expected one boolean per candidate edge")
++    if path.suffix == ".npy":
++        if len(masks) != 1:
++            raise ValueError("NPY requires one mask")
++        np.save(path, next(iter(masks.values())))
++    else:
++        np.savez_compressed(path, **masks)
++    np.savez_compressed(str(path) + ".identity.npz", pts=geo["pts"],
++                        edges=np.column_stack((geo["I"], geo["J"])),
++                        sha256=np.array(hashlib.sha256(path.read_bytes()).hexdigest()))
++
++
++def load_masks(path, geo):
++    path = Path(path)
++    identity = Path(str(path) + ".identity.npz")
++    if not identity.exists():
++        raise ValueError(f"Missing edge identity for {path.name}; regenerate, do not guess historical edge order")
++    with np.load(identity, allow_pickle=False) as meta:
++        if str(meta["sha256"]) != hashlib.sha256(path.read_bytes()).hexdigest():
++            raise ValueError("Mask checksum mismatch")
++        if meta["pts"].shape != geo["pts"].shape or not np.allclose(meta["pts"], geo["pts"], rtol=0, atol=1e-9):
++            raise ValueError("Mask node coordinates differ from current geometry")
++        edges = meta["edges"]
++    current = np.column_stack((geo["I"], geo["J"]))
++    if edges.shape != current.shape:
++        raise ValueError("Mask edge set differs from current geometry")
++    keys = [tuple(sorted(e)) for e in edges.tolist()]
++    lookup = {edge: i for i, edge in enumerate(keys)}
++    try:
++        order = np.array([lookup[tuple(sorted(e))] for e in current.tolist()])
++    except KeyError as exc:
++        raise ValueError("Mask edge set differs from current geometry") from exc
++    if len(lookup) != len(edges) or len(np.unique(order)) != len(edges):
++        raise ValueError("Duplicate or missing edge identities")
++    if path.suffix == ".npy":
++        raw = {"mask": np.load(path, allow_pickle=False)}
++    else:
++        with np.load(path, allow_pickle=False) as z:
++            raw = {k: z[k] for k in z.files}
++    for k, m in raw.items():
++        if m.dtype != bool or m.shape != (len(edges),):
++            raise ValueError(f"Invalid mask {k}")
++    return {k: m[order] for k, m in raw.items()}
++
++
++def load_mask(path, geo):
++    return load_masks(path, geo)["mask"]
+--- a/research/plot_benchmarks.py
++++ b/research/plot_benchmarks.py
+@@ -7,10 +7,11 @@
+ matplotlib.use('Agg')
+ import matplotlib.pyplot as plt
+ from matplotlib.collections import LineCollection
++from research.network_artifacts import load_masks, load_mask
+ import physarum_india as p
+ 
+ OUT=Path('out'); metrics=json.loads((OUT/'benchmark_metrics.json').read_text())
+-geo=p.build_geometry(); masks=np.load(OUT/'baseline_masks.npz')
++geo=p.build_geometry(); masks=load_masks(OUT/'baseline_masks.npz',geo)
+ names=['Physarum','terminal_MST_expanded','Delhi_shortest_path_union']
+ labels=['PHYSARUM-INSPIRED','EXPANDED TERMINAL MST','DELHI SHORTEST-PATH UNION']
+ colors=['#ffb72b','#64d5cf','#b78af7'];bg='#070a0f';fg='#edf2f7';mut='#a5b4c5'
+--- a/research/plot_fourway.py
++++ b/research/plot_fourway.py
+@@ -7,8 +7,9 @@
+ matplotlib.use('Agg')
+ import matplotlib.pyplot as plt
+ from matplotlib.collections import LineCollection
++from research.network_artifacts import load_masks, load_mask
+ import physarum_india as p
+-D=Path('out');g=p.build_geometry();b=np.load(D/'baseline_masks.npz');a=np.load(D/'augmented_mst_mask.npy');m=json.loads((D/'benchmark_metrics.json').read_text())
++D=Path('out');g=p.build_geometry();b=load_masks(D/'baseline_masks.npz',g);a=load_mask(D/'augmented_mst_mask.npy',g);m=json.loads((D/'benchmark_metrics.json').read_text())
+ M={'Physarum':b['Physarum'],'MST':b['terminal_MST_expanded'],'Delhi shortest-path union':b['Delhi_shortest_path_union'],'Augmented MST':a}
+ C=['#f3ae33','#58bcd1','#a889ed','#a5e37b']
+ plt.rcParams.update({'font.family':'DejaVu Sans','figure.facecolor':'#070a0f','savefig.facecolor':'#070a0f','text.color':'#edf2f7'})
+--- a/research/render_final_video.py
++++ b/research/render_final_video.py
+@@ -1,4 +1,4 @@
+-"""Render the final SLIMEROUTE video (v5), 1080x1350, ~28 s.
++"""Render the final SLIMEROUTE video (v4.2 repaired), 1080x1350, ~28 s.
+ 
+   growth of the Physarum network -> comparison with India's MAPPED rail lines (full-resolution GIS)
+   -> block a region and watch it rewire -> honest scoreboard end card.
+@@ -73,7 +73,7 @@
+     T(0.07, 0.765, "MEAN ROUTE DETOUR BETWEEN THE 16 CITIES  (LOWER IS BETTER)", color=p.MUTED, fontsize=9.2, va="center")
+     cols = [(0.20, physarum, "Physarum", p.ACCENT, f"{physarum['km']:,.0f} km network"),
+             (0.50, graph, "Graph heuristic", GREEN, f"{graph['km']:,.0f} km network"),
+-            (0.80, rail, "Real mapped rail", RAIL, "entire network*")]
++            (0.80, rail, "Stitched GIS graph", RAIL, "entire network*")]
+     for x, d, name, color, sub in cols:
+         T(x, 0.675, f"{d['detour']:.2f}×", color=color, fontsize=38, fontweight="bold", ha="center", va="center")
+         T(x, 0.612, name, color=p.TXT, fontsize=12, fontweight="bold", ha="center", va="center")
+@@ -82,16 +82,17 @@
+     T(0.07, 0.485, "A simple graph heuristic found\nshorter routes at similar total length.", color=p.TXT,
+       fontsize=17, fontweight="bold", va="center", linespacing=1.3)
+     T(0.07, 0.355,
+-      f"But redundancy paid off under damage. In {damage['sites']} random\n"
++      f"Static, city-excluding zones (10-seed mean). Across {damage['sites']}\n"
+       f"150 km blocked zones, Physarum kept all 120 city pairs\n"
+       f"connected {damage['physarum']:.0%} of the time, vs {damage['graph']:.0%} for the graph heuristic\n"
+-      f"and {damage['mst']:.0%} for a plain spanning tree.",
++      f"and {damage['mst']:.0%} for a plain spanning tree.\n"
++      "Similar results are not a proven resilience advantage.",
+       color="#cfd8e3", fontsize=12.2, va="center", linespacing=1.5)
+     T(0.07, 0.235, "Takeaway: reinforcing busy routes grows connected, redundant\nnetworks. It does not magically beat engineers.",
+       color=p.ACCENT, fontsize=12, va="center", linespacing=1.5)
+     T(0.07, 0.105,
+-      "*Real rail = the whole mapped network (about 86,000 km of line, parallel tracks included),\n"
+-      "so it is not a like-for-like cost comparison. Seed 7, 25 km lattice, approximate terrain.\n"
++      "*GIS graph = the whole mapped network (about 86,000 km of line, parallel tracks included),\n"
++      "Not an equal-cost comparison; junctions unverified. Seed-7 model, approximate terrain.\n"
+       "Rail data: datta07/INDIAN-SHAPEFILES (third-party GIS). Model: Tero et al., Science 2010.",
+       color="#6d7f91", fontsize=7.8, va="center", linespacing=1.55)
+     fig.canvas.draw()
+@@ -143,6 +144,7 @@
+             snaps_rep.append(slime.D.astype(np.float32).copy())
+     D_repaired = slime.D.copy()
+     after = p.analyse(geo, D_repaired, slime.alive)
++    (out / "recovery_v42.json").write_text(json.dumps(dict(seed=args.seed, before={k:v for k,v in before.items() if k != "mask"}, immediate={k:v for k,v in immediate.items() if k != "mask"}, after={k:v for k,v in after.items() if k != "mask"}, block_center=center.tolist(), radius_km=p.BLOCK_R), indent=2))
+     log(f"after block: immediate {immediate['connected_pairs']}/120, adapted {after['connected_pairs']}/120")
+ 
+     # sanity: the numbers on screen must equal the published JSON
+@@ -155,7 +157,7 @@
+     p10, a10 = prox["Physarum"]["model_length_within"]["10"], prox["Augmented MST"]["model_length_within"]["10"]
+     compare_text = (
+         "Mean route detour, 16 cities\n"
+-        f"  Real rail, whole network    {rd:4.2f}x\n"
++        f"  GIS graph, preliminary    {rd:4.2f}x\n"
+         f"  Physarum        ({pl / 1000:4.1f}k km)  {pd:4.2f}x\n"
+         f"  Graph heuristic ({al / 1000:4.1f}k km)  {ad:4.2f}x\n"
+         "\n"
+@@ -235,7 +237,8 @@
+                     dict(detour=pd, km=pl), dict(detour=ad, km=al), dict(detour=rd, km=fr["polyline_km"]), damage)
+     hold(card, FR["card"])
+     ff.stdin.close()
+-    ff.wait()
++    if ff.wait() != 0:
++        raise RuntimeError("FFmpeg failed")
+     log(f"video written: {vid} ({n} frames, {n / p.FPS:.1f} s)")
+ 
+ 
+--- a/research/resilience_study.py
++++ b/research/resilience_study.py
+@@ -1,4 +1,4 @@
+-"""Resilience study (v5): one common, neutral set of blocked zones for every design.
++"""Resilience study (v4.2 repaired): one common, neutral set of blocked zones for every design.
+ 
+ Why: earlier damage tests used site sets drawn from the networks themselves (and different sets in
+ different scripts: 84% vs 92% for the same seed-7 network). Here the blocked zones are drawn
+@@ -22,7 +22,11 @@
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+ sys.path.insert(0, str(ROOT))
++from research.network_artifacts import load_masks, load_mask
+ import physarum_india as p  # noqa: E402
++from scipy.sparse import coo_matrix
++from scipy.sparse.csgraph import connected_components
++from research.network_artifacts import save_masks
+ from research.benchmark import baselines, blocked_mask, city_pair_mask, network_metrics  # noqa: E402
+ 
+ SEEDS = [1, 2, 3, 4, 5, 6, 7, 11, 21, 42]
+@@ -41,7 +45,14 @@
+ 
+ def survival(geo, mask, centers, radius):
+     """Pairs still connected for each blocked zone (array of length len(centers))."""
+-    return np.array([network_metrics(geo, mask & blocked_mask(geo, c, radius))["connected_pairs"] for c in centers])
++    counts = []
++    for c in centers:
++        keep = mask & blocked_mask(geo, c, radius)
++        graph = coo_matrix((np.ones(keep.sum()), (geo["I"][keep], geo["J"][keep])), shape=(len(geo["pts"]),) * 2).tocsr()
++        _, labels = connected_components(graph, directed=False)
++        groups = np.bincount(labels[geo["city_node"]])
++        counts.append(int(np.sum(groups * (groups - 1) // 2)))
++    return np.asarray(counts)
+ 
+ 
+ def grow(seed):
+@@ -54,16 +65,26 @@
+ 
+ def summarize(counts, total=120):
+     return dict(sites=int(len(counts)), fraction_all_pairs_connected=float(np.mean(counts == total)),
+-                mean_pairs_connected=float(np.mean(counts)), min_pairs_connected=int(np.min(counts)))
++                mean_pairs_connected=float(np.mean(counts)), min_pairs_connected=int(np.min(counts)), all_remaining_pairs=counts.tolist())
+ 
+ 
+ def main():
+     geo = p.build_geometry()
+     designs = {k: v for k, v in baselines(geo).items()}
+     designs = {"Terminal MST": designs["terminal_MST_expanded"], "Delhi shortest-path union": designs["Delhi_shortest_path_union"],
+-               "Augmented MST": np.load(ROOT / "out" / "augmented_mst_mask.npy")}
+-    with Pool(2) as pool:
+-        physarum = dict(pool.map(grow, SEEDS))
++               "Augmented MST": load_mask(ROOT / "out" / "augmented_mst_mask.npy", geo)}
++    if "--reuse-masks" in sys.argv:
++        cached = load_masks(ROOT / "out" / "physarum_seed_masks.npz", geo)
++        physarum = {seed: cached[str(seed)] for seed in SEEDS}
++    else:
++        with Pool(2) as pool:
++            rows = []
++            for item in pool.imap_unordered(grow, SEEDS):
++                rows.append(item)
++                print(f"grown seed {item[0]}", flush=True)
++        found = dict(rows)
++        physarum = {seed: found[seed] for seed in SEEDS}
++    save_masks(ROOT / "out" / "physarum_seed_masks.npz", geo, **{str(k): v for k, v in physarum.items()})
+     print("grown", len(physarum), "Physarum networks", flush=True)
+ 
+     out = dict(protocol=__doc__.split("Protocol")[1].split("python")[0].strip(), radii_km=list(RADII), sites_per_radius=SITES,
+@@ -71,6 +92,7 @@
+     for radius in RADII:
+         centers = sample_sites(geo, radius)
+         res = {}
++        heuristic_counts = survival(geo, designs["Augmented MST"], centers, radius)
+         for name, mask in designs.items():
+             res[name] = dict(length_km=network_metrics(geo, mask)["length_km_approx"],
+                              **summarize(survival(geo, mask, centers, radius)))
+@@ -82,8 +104,16 @@
+             sites=SITES, fraction_all_pairs_connected=float(fr.mean()), fraction_sd_across_seeds=float(fr.std(ddof=1)),
+             fraction_min_seed=float(fr.min()), fraction_max_seed=float(fr.max()),
+             mean_pairs_connected=float(mp.mean()), per_seed={str(k): v for k, v in per_seed.items()})
++        differences = np.array([(np.array(v["all_remaining_pairs"]) == 120).astype(float) - (heuristic_counts == 120).astype(float) for v in per_seed.values()])
++        rng = np.random.default_rng(SITE_SEED + radius + 9000)
++        means = np.empty(2000)
++        for b in range(len(means)):
++            means[b] = differences[rng.integers(0, len(SEEDS), len(SEEDS))][:, rng.integers(0, SITES, SITES)].mean()
++        res["paired_comparison"] = dict(physarum_minus_heuristic=float(differences.mean()),
++            descriptive_bootstrap_95_interval=np.quantile(means, [.025, .975]).tolist(),
++            method="Resample seeds and shared zone indices; descriptive only, overlapping zones have spatial dependence; not a spatial confidence interval or superiority test")
+         out["results"][str(radius)] = res
+-        print(f"radius {radius} km:", {k: round(v["fraction_all_pairs_connected"], 3) for k, v in res.items()}, flush=True)
++        print(f"radius {radius} km:", {k: round(v["fraction_all_pairs_connected"], 3) for k, v in res.items() if "fraction_all_pairs_connected" in v}, flush=True)
+     (ROOT / "out" / "resilience_study.json").write_text(json.dumps(out, indent=2))
+     print("wrote out/resilience_study.json")
+ 
+--- a/scripts/prepare_publication.py
++++ b/scripts/prepare_publication.py
+@@ -0,0 +1,60 @@
++"""Produce the local supplement's caption and machine-readable publication numbers."""
++from pathlib import Path
++import json
++ROOT=Path(__file__).resolve().parents[1]
++out=ROOT/'out'
++read=lambda name:json.loads((out/name).read_text())
++b=read('benchmark_metrics.json')['unaffected']['Physarum']
++a=read('augmented_mst_metrics.json')['metrics']
++f=read('fullres_rail_analysis.json')
++r=read('resilience_study.json')['results']['150']
++m=read('multi_seed_study.json')['entries']
++rec=read('recovery_v42.json')
++vals=dict(scope='Local validated supplement; public repository remains v4.1',
++    seed7=b,heuristic=a,ten_seed_mean_length_km=sum(x['no_damage']['length_km_approx'] for x in m)/len(m),
++    ten_seed_mean_detour=sum(x['no_damage']['mean_detour_reachable_only'] for x in m)/len(m),
++    ten_seed_all_connected=all(x['no_damage']['connected_pairs']==120 for x in m),
++    preliminary_rail_detour=f['rail_topology']['mean_detour'],rail_polyline_km=f['polyline_km'],
++    static_150km={k:r[k]['fraction_all_pairs_connected'] for k in ('Physarum (10 seeds)','Augmented MST','Terminal MST')},
++    recovery=rec)
++(out/'publication_numbers.json').write_text(json.dumps(vals,indent=2))
++caption=f'''# LinkedIn caption - repaired local v4.2 supplement
++
++Status: the public repository remains v4.1. This caption labels the additional work as a local supplement. Share the supplement separately if offering readers full reproducibility. Nothing has been posted automatically.
++
++---
++
++Can a slime-mold-inspired rule grow a useful transport network? I tested it on 16 Indian city points - then compared it with conventional graph algorithms.
++
++The model solves flow through about 35,000 candidate grid connections. Routes carrying flow reinforce; unused routes fade. It is inspired by Tero et al.'s adaptive-network model, extended here with batched city-pair flows and approximate terrain costs.
++
++What I found in this computational experiment:
++
++- All ten seeds connected all 120 city pairs before damage. Mean model length was about {vals['ten_seed_mean_length_km']:,.0f} km, with {vals['ten_seed_mean_detour']:.2f}x mean route detour.
++- A conventional graph heuristic gave shorter routes at nearly equal length: seed-7 Physarum {b['mean_detour_reachable_only']:.2f}x versus heuristic {a['mean_detour_reachable_only']:.2f}x, at {b['length_km_approx']:,.0f} versus {a['length_km_approx']:,.0f} model-km.
++- Across 300 shared 150-km-radius zones sampled from lattice locations away from cities, static networks retained all pairs in {r['Physarum (10 seeds)']['fraction_all_pairs_connected']:.0%} of cases on average across ten Physarum seeds, versus {r['Augmented MST']['fraction_all_pairs_connected']:.0%} for the heuristic and {r['Terminal MST']['fraction_all_pairs_connected']:.0%} for the terminal MST baseline. Those first two are similar descriptive results, not a statistically proven win. There is no re-adaptation in this study.
++- In one separate recovery demonstration, adaptation restored {rec['immediate']['connected_pairs']}/120 pairs to {rec['after']['connected_pairs']}/120, with detour increasing from {rec['before']['detour']:.2f}x to {rec['after']['detour']:.2f}x.
++
++I also explored proximity to third-party mapped railway lines and a preliminary stitched GIS graph. That is a reference experiment, not a verified operational railway network or an equal-cost engineering comparison.
++
++A useful lesson came from reproducibility: a fresh run agreed with the headline result, but stored edge masks were being interpreted differently on another environment. I added stable edge identities, checksums and regression tests, then regenerated the results.
++
++Limits: approximate outline and synthetic terrain; no real demand, elevation or rivers; conditional static damage zones; unverified rail junctions and source currency. This is a research prototype, not railway planning software.
++
++Public v4.1 code: https://github.com/biggfatbird/SlimeRoute
++The additional analyses and regenerated media are in a separate local v4.2 supplement; they are not yet in the public repository.
++
++Built with AI pair-programming assistance from Claude and ChatGPT. The repaired supplement was checked with automated tests and local reproduction runs.
++
++Next: verified rail junctions, real demand and terrain, and stronger uncertainty analysis.
++
++What would you test next?
++
++#Python #NetworkScience #Biomimicry #ScientificComputing
++
++---
++
++Source comment: Tero et al., Rules for Biologically Inspired Adaptive Network Design, Science 327 (2010), https://doi.org/10.1126/science.1177894 . Railway GIS: datta07/INDIAN-SHAPEFILES; third-party mapped lines, not an official operational inventory.
++'''
++(ROOT/'LINKEDIN_POST_V42.md').write_text(caption)
++print('Wrote publication_numbers.json and the qualified local-supplement caption')
+--- a/scripts/prepublish_check.py
++++ b/scripts/prepublish_check.py
+@@ -11,14 +11,15 @@
+ sys.path.insert(0,str(ROOT))
+ sys.path.insert(0,str(ROOT/'research'))
+ from research.benchmark import network_metrics
++from research.network_artifacts import load_masks, load_mask
+ import physarum_india as p
+ 
+ 
+ def check():
+-    out=ROOT/'out';g=p.build_geometry();mask=np.load(out/'baseline_masks.npz')
++    out=ROOT/'out';g=p.build_geometry();mask=load_masks(out/'baseline_masks.npz',g)
+     bench=json.loads((out/'benchmark_metrics.json').read_text())
+     augmented=json.loads((out/'augmented_mst_metrics.json').read_text())
+-    augmented_mask=np.load(out/'augmented_mst_mask.npy')
++    augmented_mask=load_mask(out/'augmented_mst_mask.npy',g)
+     assert augmented_mask.dtype==bool
+     named={'Physarum':mask['Physarum'], 'terminal_MST_expanded':mask['terminal_MST_expanded'],
+            'Delhi_shortest_path_union':mask['Delhi_shortest_path_union'],
+@@ -49,16 +50,8 @@
+             assert math.isclose(got,expected,abs_tol=1e-10),(name,t,got,expected)
+     shifts=json.loads((out/'raster_position_sensitivity.json').read_text())
+     assert len(shifts['perturbations'])==9
+-    video=out/'slime_india_v4.mp4'
+-    assert video.stat().st_size>200_000
+-    try:
+-        r=subprocess.run(['ffprobe','-v','error','-show_entries','format=duration',
+-                          '-of','default=noprint_wrappers=1:nokey=1',str(video)],
+-                         check=True,capture_output=True,text=True)
+-        assert 29.5<float(r.stdout.strip())<30.5
+-    except FileNotFoundError:
+-        print('FFprobe unavailable; video duration not checked')
+-    print('PASS: saved graph masks, metrics, length budget, corrected heuristic, proximity, raster and media are internally consistent.')
++    # Historical videos are retained as history; the strict v4.2 gate validates current media.
++    print('PASS: saved graph masks, metrics, length budget, corrected heuristic, proximity and raster are internally consistent.')
+     print('CAUTION: does not validate source GIS currency or physical railway topology.')
+ 
+ if __name__=='__main__':check()
+--- a/scripts/prepublish_check_v42.py
++++ b/scripts/prepublish_check_v42.py
+@@ -1,102 +1,89 @@
+-"""Offline consistency gate for the v4.2 additions (additive to scripts/prepublish_check.py).
+-
+-Checks, from saved masks and JSON, that the numbers in the new outputs are reproducible:
+-  * resilience_study.json: the three static designs are recomputed at 150 km and Physarum seed 7 is regrown
+-  * fullres_rail_analysis.json: metadata present, rail source hash recorded, detour sensitivity bracketed
+-  * if data/INDIAN_RAILWAYS.geojson is present (python research/download_real_tracks.py), the full-resolution
+-    proximity and rail-topology numbers are recomputed and compared; otherwise this part is SKIPPED (printed)
+-  * the final video is 1080x1350 H.264 of about 27 s; the carousel has 7 slides and a PDF
+-It does NOT validate the currency or completeness of the third-party rail GIS.
+-"""
+-from __future__ import annotations
+-
++"""Strict local publication gate. Missing source, mask identity or FFmpeg is a failure."""
++from pathlib import Path
+ import json
+ import math
+-import subprocess
+ import sys
+-from pathlib import Path
+-
+ import numpy as np
+-
+-ROOT = Path(__file__).resolve().parents[1]
+-sys.path.insert(0, str(ROOT))
+-sys.path.insert(0, str(ROOT / "research"))
+-import physarum_india as p  # noqa: E402
+-from research import fullres_rail_analysis as fr  # noqa: E402
+-from research.benchmark import baselines, city_pair_mask  # noqa: E402
+-from research.resilience_study import sample_sites, survival  # noqa: E402
++ROOT=Path(__file__).resolve().parents[1]
++sys.path.insert(0,str(ROOT))
++from research import fullres_rail_analysis as fr
++from research.network_artifacts import load_masks, load_mask
++from research.resilience_study import sample_sites, survival, summarize, SEEDS, RADII
++from research.benchmark import baselines, city_pair_mask
++from research.media_validation import check_media
++import physarum_india as p
+ 
+ 
+ def check_resilience(out, geo):
+-    rs = json.loads((out / "resilience_study.json").read_text())
+-    centers = sample_sites(geo, 150, rs["sites_per_radius"], rs["site_seed"])
+-    base = baselines(geo)
+-    masks = {"Terminal MST": base["terminal_MST_expanded"], "Delhi shortest-path union": base["Delhi_shortest_path_union"],
+-             "Augmented MST": np.load(out / "augmented_mst_mask.npy")}
+-    for name, m in masks.items():
+-        got = rs["results"]["150"][name]["fraction_all_pairs_connected"]
+-        fresh = float(np.mean(survival(geo, m, centers, 150) == 120))
+-        assert math.isclose(got, fresh, abs_tol=1e-12), (name, got, fresh)
+-    s = p.Slime(geo, 7)
+-    for _ in range(p.T_GROW):
+-        s.step()
+-    m7 = city_pair_mask(geo, s.D, s.alive, p.REL_THR)
+-    got7 = rs["results"]["150"]["Physarum (10 seeds)"]["per_seed"]["7"]["fraction_all_pairs_connected"]
+-    assert math.isclose(got7, float(np.mean(survival(geo, m7, centers, 150) == 120)), abs_tol=1e-12)
+-    return rs
++    rs=json.loads((out/'resilience_study.json').read_text())
++    masks=load_masks(out/'physarum_seed_masks.npz',geo)
++    base=baselines(geo)
++    designs={'Terminal MST':base['terminal_MST_expanded'], 'Delhi shortest-path union':base['Delhi_shortest_path_union'],
++             'Augmented MST':load_mask(out/'augmented_mst_mask.npy',geo)}
++    assert rs['physarum_seeds']==SEEDS
++    for rad in RADII:
++        centers=sample_sites(geo,rad,rs['sites_per_radius'],rs['site_seed'])
++        result=rs['results'][str(rad)]
++        for name, mask in designs.items():
++            fresh=summarize(survival(geo,mask,centers,rad))
++            assert fresh=={k:result[name][k] for k in fresh},(rad,name)
++        fractions=[]
++        for seed in SEEDS:
++            fresh=summarize(survival(geo,masks[str(seed)],centers,rad))
++            assert fresh==result['Physarum (10 seeds)']['per_seed'][str(seed)],(rad,seed)
++            fractions.append(fresh['fraction_all_pairs_connected'])
++        assert math.isclose(np.mean(fractions),result['Physarum (10 seeds)']['fraction_all_pairs_connected'],abs_tol=1e-12)
++        assert math.isclose(np.std(fractions,ddof=1),result['Physarum (10 seeds)']['fraction_sd_across_seeds'],abs_tol=1e-12)
++    model=p.Slime(geo,7)
++    for _ in range(p.T_GROW):model.step()
++    assert np.array_equal(city_pair_mask(geo,model.D,model.alive,p.REL_THR),masks['7']), 'Fresh seed 7 differs from cached mask'
++    assert np.array_equal(masks['7'],load_masks(out/'baseline_masks.npz',geo)['Physarum'])
++    from research.equal_budget import augmented_tree
++    fresh_heuristic,_=augmented_tree(geo,json.loads((out/'augmented_mst_metrics.json').read_text())['budget_km'])
++    assert np.array_equal(fresh_heuristic,designs['Augmented MST']), 'Heuristic mask does not reproduce'
++    before=p.analyse(geo,model.D,model.alive)
++    center=p.choose_block(model,geo['city_xy'],p.BLOCK_R)
++    model.block(center,p.BLOCK_R)
++    immediate=p.analyse(geo,model.D,model.alive)
++    for _ in range(p.T_REPAIR): model.step()
++    after=p.analyse(geo,model.D,model.alive)
++    recovery=json.loads((out/'recovery_v42.json').read_text())
++    for name,actual in [('before',before),('immediate',immediate),('after',after)]:
++        for key,value in actual.items():
++            if key!='mask': assert math.isclose(value,recovery[name][key],rel_tol=1e-9,abs_tol=1e-10),(name,key)
++    print('PASS: reproduced heuristic and single adaptive recovery',flush=True)
++    print('PASS: all 10 saved masks, all 3 radii, raw per-zone connectivity, and fresh seed 7',flush=True)
+ 
+ 
+-def check_rail(out, geo):
+-    j = json.loads((out / "fullres_rail_analysis.json").read_text())
+-    assert "63ff14b3f3b62a6d18d4950e9ab4ba99a3c5c16d" in j["source"]
+-    topo, sens = j["rail_topology"], j["rail_detour_vs_stitch_tolerance_km"]
+-    assert topo["pairs_connected"] == 120 and 1.2 < topo["mean_detour"] < 1.35
+-    assert all(abs(v - topo["mean_detour"]) < 0.03 for v in sens.values()), "rail detour is sensitive to stitching tolerance"
+-    assert len(fr.load_simplified(ROOT / "data" / "rail_lines_simplified.npz")) > 20000
+-    src = ROOT / "data" / "INDIAN_RAILWAYS.geojson"
+-    if not src.exists():
+-        print("SKIPPED: full-resolution recomputation (download with python research/download_real_tracks.py)")
+-        return j
+-    lines, _ = fr.load_lines(src)
+-    V, start, lens = fr.lines_to_km(lines)
+-    fr.assert_physical_tracks(V, start, lens)
+-    clon, clat = p.unproj(geo["city_xy"][:, 0], geo["city_xy"][:, 1])
+-    cx, cy = fr.TO_M.transform(clon, clat)
+-    fresh = fr.rail_topology(V, start, lens, np.c_[cx, cy] / 1000.0)
+-    assert math.isclose(fresh["mean_detour"], topo["mean_detour"], rel_tol=1e-9)
+-    sa, sb = fr.segment_indices(start, lens)
+-    rp, rw = fr.sample_segments(V, sa, sb)
+-    for name, mask in fr.network_masks(out).items():
+-        f = fr.proximity(rp, rw, geo, mask)
+-        for t in fr.TOLERANCES_KM:
+-            assert math.isclose(f["model_length_within"][str(t)], j["proximity"][name]["model_length_within"][str(t)], abs_tol=1e-9)
+-    print("recomputed full-resolution proximity and rail topology from the source file: OK")
+-    return j
+-
+-
+-def check_media(out):
+-    v = out / "slime_india_final.mp4"
+-    assert v.stat().st_size > 500_000
+-    try:
+-        r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height,codec_name:format=duration",
+-                            "-of", "json", str(v)], capture_output=True, text=True, check=True)
+-        info = json.loads(r.stdout)
+-        st, dur = info["streams"][0], float(info["format"]["duration"])
+-        assert (st["width"], st["height"], st["codec_name"]) == (1080, 1350, "h264") and 26 < dur < 29, (st, dur)
+-    except FileNotFoundError:
+-        print("FFprobe unavailable; video format not checked")
+-    assert len(list((out / "carousel").glob("slide_*.png"))) == 7 and (out / "slimeroute_carousel.pdf").stat().st_size > 200_000
++def check_rail(out,geo):
++    j=json.loads((out/'fullres_rail_analysis.json').read_text())
++    source=ROOT/'data/INDIAN_RAILWAYS.geojson'
++    fr.verify_source(source)
++    lines,total=fr.load_lines(source)
++    V,start,lens=fr.lines_to_km(lines)
++    fr.assert_physical_tracks(V,start,lens)
++    lon,lat=p.unproj(geo['pts'][geo['city_node'],0],geo['pts'][geo['city_node'],1])
++    x,y=fr.TO_M.transform(lon,lat); terminals=np.c_[x,y]/1000
++    topo=fr.rail_topology(V,start,lens,terminals)
++    for k,v in topo.items():assert math.isclose(v,j['rail_topology'][k],rel_tol=1e-9,abs_tol=1e-10),(k,v,j['rail_topology'][k])
++    assert topo['pairs_connected']==120
++    assert total==j['features_total'] and len(lines)==j['features_used']
++    for t in (.1,.3,1.5):
++        value=fr.rail_topology(V,start,lens,terminals,t)['mean_detour']
++        assert math.isclose(value,j['rail_detour_vs_stitch_tolerance_km'][str(t)],rel_tol=1e-9)
++    a,b=fr.segment_indices(start,lens); rp,rw=fr.sample_segments(V,a,b)
++    assert math.isclose(rw.sum(),j['polyline_km'],rel_tol=1e-12)
++    for name,mask in fr.network_masks(out,geo).items():
++        fresh=fr.proximity(rp,rw,geo,mask)
++        for field in ('model_length_within','rail_length_within_model'):
++            for t in fr.TOLERANCES_KM:
++                assert math.isclose(fresh[field][str(t)],j['proximity'][name][field][str(t)],abs_tol=1e-10),(name,field,t)
++    assert len(fr.load_simplified(ROOT/'data/rail_lines_simplified.npz'))==len(lines)
++    print('PASS: actual source hash, full-resolution proximity, topology and stitch sensitivity',flush=True)
+ 
+ 
+ def main():
+-    out = ROOT / "out"
+-    geo = p.build_geometry()
+-    check_resilience(out, geo)
+-    check_rail(out, geo)
+-    check_media(out)
+-    print("PASS (v4.2): resilience, real-rail analysis and media are consistent with saved masks and results.")
+-    print("CAUTION: does not validate the currency or completeness of the third-party rail GIS.")
+-
+-
+-if __name__ == "__main__":
+-    main()
++    geo=p.build_geometry();out=ROOT/'out'
++    check_resilience(out,geo);check_rail(out,geo);check_media(out)
++    print('PASS: strict v4.2 local gate; GIS operational truth and cross-platform CI remain unvalidated')
++if __name__=='__main__':main()
+--- a/scripts/reproduce_repaired.sh
++++ b/scripts/reproduce_repaired.sh
+@@ -0,0 +1,19 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd "$(dirname "$0")/.."
++export MPLCONFIGDIR="${MPLCONFIGDIR:-$PWD/.matplotlib-cache}"
++command -v ffmpeg >/dev/null || { echo "FFmpeg is required" >&2; exit 1; }
++python research/benchmark.py --out out --seed 7 --damage-sites 25
++python research/equal_budget.py --out out
++python research/resilience_study.py
++python research/multi_seed.py
++python research/fullres_rail_analysis.py
++python research/compare_rail_raster.py
++python research/plot_fourway.py
++python research/render_final_video.py
++python research/make_carousel.py
++python scripts/prepare_publication.py
++PYTHONPATH=. python -m pytest -q tests
++python scripts/prepublish_check.py
++python scripts/prepublish_check_v42.py
++python scripts/write_integrity.py
+--- a/scripts/write_integrity.py
++++ b/scripts/write_integrity.py
+@@ -0,0 +1,8 @@
++"""Write checksums for distributable files, excluding transient execution caches."""
++from pathlib import Path
++import hashlib
++ROOT=Path(__file__).resolve().parents[1]
++SKIP={'.git','__pycache__','.pytest_cache','.matplotlib-cache','.venv'}
++files=sorted(p for p in ROOT.rglob('*') if p.is_file() and not SKIP.intersection(p.relative_to(ROOT).parts) and p.name not in ('INTEGRITY.sha256','.DS_Store'))
++(ROOT/'INTEGRITY.sha256').write_text(''.join(f'{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.relative_to(ROOT).as_posix()}\n' for p in files))
++print(f'Checksummed {len(files)} files')
+--- a/tests/test_artifacts.py
++++ b/tests/test_artifacts.py
+@@ -0,0 +1,51 @@
++import numpy as np
++import pytest
++from research.network_artifacts import save_masks, load_masks
++from research.resilience_study import survival
++from research.benchmark import network_metrics, blocked_mask
++import physarum_india as p
++
++
++def test_mask_remaps_when_edge_order_changes(tmp_path):
++    geo = dict(pts=np.array([[0., 0.], [1., 0.], [2., 0.]]), I=np.array([0, 1]), J=np.array([1, 2]))
++    path = tmp_path / 'm.npz'
++    save_masks(path, geo, route=np.array([True, False]))
++    reordered = dict(geo, I=geo['I'][::-1], J=geo['J'][::-1])
++    assert load_masks(path, reordered)['route'].tolist() == [False, True]
++    wrong = dict(geo, pts=geo['pts'] + 1)
++    with pytest.raises(ValueError, match='coordinates'):
++        load_masks(path, wrong)
++
++
++def test_missing_identity_and_modified_mask_fail_closed(tmp_path):
++    geo = dict(pts=np.array([[0., 0.], [1., 0.]]), I=np.array([0]), J=np.array([1]))
++    path = tmp_path / 'm.npy'
++    np.save(path, np.array([True]))
++    with pytest.raises(ValueError, match='Missing edge identity'):
++        load_masks(path, geo)
++    save_masks(path, geo, mask=np.array([True]))
++    np.save(path, np.array([False]))
++    with pytest.raises(ValueError, match='checksum'):
++        load_masks(path, geo)
++
++
++def test_geometry_canonical_under_permuted_spatial_tree(monkeypatch):
++    original = p.cKDTree
++    expected = p.build_geometry()
++    class ReorderedTree:
++        def __init__(self, *args, **kw): self.tree = original(*args, **kw)
++        def query_pairs(self, *args, **kw): return self.tree.query_pairs(*args, **kw)[::-1]
++        def query(self, *args, **kw): return self.tree.query(*args, **kw)
++    monkeypatch.setattr(p, 'cKDTree', ReorderedTree)
++    fresh = p.build_geometry()
++    assert np.array_equal(expected['I'], fresh['I'])
++    assert np.array_equal(expected['J'], fresh['J'])
++
++
++def test_connectivity_counter_agrees_with_shortest_path_metrics():
++    geo = p.build_geometry()
++    mask = np.ones(len(geo['I']), bool)
++    centers = geo['city_xy'][[0, 5, 10]]
++    counts = survival(geo, mask, centers, 150)
++    expected = [network_metrics(geo, mask & blocked_mask(geo,c,150))['connected_pairs'] for c in centers]
++    assert counts.tolist() == expected
+--- a/tests/test_mapped_rails.py
++++ b/tests/test_mapped_rails.py
+@@ -21,7 +21,8 @@
+ def test_proximity_is_a_proportion():
+     geo=p.build_geometry()
+     import numpy as np
+-    masks=np.load(Path(__file__).resolve().parents[1]/'out'/'baseline_masks.npz')
++    from research.network_artifacts import load_masks
++    masks=load_masks(Path(__file__).resolve().parents[1]/'out'/'baseline_masks.npz',geo)
+     _,_,railmetric=rail_points()
+     result=compare(geo,railmetric,masks['Physarum'],(25,50))
+     for v in result['thresholds'].values():
+--- a/tests/test_rail_validation.py
++++ b/tests/test_rail_validation.py
+@@ -0,0 +1,15 @@
++import numpy as np
++import pytest
++from research.fullres_rail_analysis import verify_source, rail_topology
++
++
++def test_rail_source_rejects_unverified_input(tmp_path):
++    p=tmp_path/'source.json';p.write_text('{}')
++    with pytest.raises(ValueError,match='hash mismatch'): verify_source(p)
++
++
++def test_terminal_access_legs_are_included():
++    V=np.array([[0.,0.],[10.,0.]])
++    cities=np.array([[0.,1.],[10.,1.]])
++    result=rail_topology(V,np.array([0]),np.array([2]),cities,stitch_km=.1)
++    assert result['mean_detour']==pytest.approx(1.2)

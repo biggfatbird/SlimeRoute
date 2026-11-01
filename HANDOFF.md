@@ -1,3 +1,5 @@
+> HISTORICAL v4.1 / earlier document. For the repaired local supplement use README.md and REPAIR_REPORT.md. Its release status and numbers have not been updated here.
+
 > **Historical handoff (original prototype).** For current results and publication use `README.md`, `AUDIT_REPORT.md`, and `PUBLISH_CHECKLIST.md`. The instructions and caption mentioned below describe the earlier schematic-only build.
 
 # SLIMEROUTE handoff — 31 October 2026

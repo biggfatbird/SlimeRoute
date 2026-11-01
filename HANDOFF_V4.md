@@ -1,3 +1,5 @@
+> HISTORICAL v4.1 / earlier document. For the repaired local supplement use README.md and REPAIR_REPORT.md. Its release status and numbers have not been updated here.
+
 **Audited update 2026-11-01:** See `AUDIT_REPORT.md` for corrected augmented-MST scoring, regenerated metrics/videos, and additional test coverage. Historical figures below may mention the earlier heuristic.
 
 # SLIMEROUTE v4 — Real mapped-rail geometry handoff (2026-10-31)

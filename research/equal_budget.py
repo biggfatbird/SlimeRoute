@@ -50,5 +50,6 @@ if __name__=='__main__':
     pa=argparse.ArgumentParser();pa.add_argument('--budget-km',type=float,default=10034.549882328189);pa.add_argument('--out',default='out')
     a=pa.parse_args();geo=p.build_geometry();mask,add=augmented_tree(geo,a.budget_km);m=network_metrics(geo,mask)
     print(json.dumps({'metrics':m,'additions':add},indent=2))
-    np.save(Path(a.out)/'augmented_mst_mask.npy',mask)
+    from research.network_artifacts import save_masks
+    save_masks(Path(a.out)/'augmented_mst_mask.npy',geo,mask=mask)
     (Path(a.out)/'augmented_mst_metrics.json').write_text(json.dumps({'budget_km':a.budget_km,'metrics':m,'additions':add,'description':'greedy reduction of terrain-weighted all-pairs route cost, physical-length budget, same lattice, nonoptimal heuristic'},indent=2))

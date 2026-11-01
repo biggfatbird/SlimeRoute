@@ -18,7 +18,7 @@
     {
       "from": "Mumbai",
       "to": "Hyderabad",
-      "added_km": 621.4101615137755
+      "added_km": 621.4101615137756
     },
     {
       "from": "Nagpur",
@@ -51,11 +51,5 @@
       "added_km": 309.80762113533143
     }
   ],
-  "description": "greedy reduction of terrain-weighted all-pairs route cost, physical-length budget, same lattice, nonoptimal heuristic",
-  "damage_25_sites_same_as_initial_benchmarks": {
-    "sites": 25,
-    "mean_connected_pairs": 112.92,
-    "fraction_fully_connected": 0.72,
-    "min_connected_pairs": 81
-  }
+  "description": "greedy reduction of terrain-weighted all-pairs route cost, physical-length budget, same lattice, nonoptimal heuristic"
 }

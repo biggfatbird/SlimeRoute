@@ -1,3 +1,5 @@
+> HISTORICAL v4.1 / earlier document. For the repaired local supplement use README.md and REPAIR_REPORT.md. Its release status and numbers have not been updated here.
+
 I gave a Physarum-inspired algorithm 16 Indian cities to connect. Then I tested its network against mapped Indian railway lines.
 
 The animation looked convincing. The measurements told a more interesting story:

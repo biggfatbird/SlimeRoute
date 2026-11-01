@@ -1,0 +1,8 @@
+29946 of 29947 features used; 738962 vertices; polyline total 86387 km
+Physarum                     5km 29.7%  10km 52.7%  25km 86.7%  50km 99.0%
+Terminal MST                 5km 40.0%  10km 63.6%  25km 90.9%  50km 99.7%
+Delhi shortest-path union    5km 24.5%  10km 43.9%  25km 76.2%  50km 97.0%
+Augmented MST                5km 35.1%  10km 56.6%  25km 86.0%  50km 97.4%
+real rail topology: 120/120 pairs, mean detour 1.274 (stitch tolerance sensitivity: {'0.1': 1.2780144380177125, '0.3': 1.2761754910431091, '1.5': 1.264415268063679})
+wrote /Users/shankersingh/Documents/Codex/2026-11-01/referenced-chatgpt-conversation-this-is-an/work/repaired/out/fullres_rail_analysis.json
+wrote /Users/shankersingh/Documents/Codex/2026-11-01/referenced-chatgpt-conversation-this-is-an/work/repaired/data/rail_lines_simplified.npz (62861 vertices)

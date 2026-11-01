@@ -5,6 +5,8 @@ exact data inspected for the 2026-10-31 comparison.
 """
 from pathlib import Path
 import hashlib
+import ssl
+import certifi
 from urllib.request import Request, urlopen
 
 URL='https://raw.githubusercontent.com/datta07/INDIAN-SHAPEFILES/master/INDIA/INDIAN_RAILWAYS.geojson'
@@ -15,7 +17,7 @@ OUT=Path(__file__).resolve().parents[1]/'data'/'INDIAN_RAILWAYS.geojson'
 def main():
     print('Downloading 34 MB of line geometry (source: datta07/INDIAN-SHAPEFILES)...')
     req=Request(URL,headers={'User-Agent':'SLIMEROUTE-study/1.0'})
-    with urlopen(req, timeout=60) as r:
+    with urlopen(req, timeout=60, context=ssl.create_default_context(cafile=certifi.where())) as r:
         buf=r.read(70_000_001)
     if len(buf)>70_000_000:
         raise ValueError('Source unexpectedly large; refusing to save')

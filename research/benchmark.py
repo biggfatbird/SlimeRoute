@@ -177,7 +177,8 @@ def run(output,quick=False,seed=7,n_damage=20):
                    'damage_summary':summary},f,indent=2)
     with open(output/'damage_locations.csv','w',newline='') as f:
         writer=csv.DictWriter(f,fieldnames=list(damage[0]));writer.writeheader();writer.writerows(damage)
-    np.savez_compressed(output/'baseline_masks.npz',**nets)
+    from research.network_artifacts import save_masks
+    save_masks(output/'baseline_masks.npz',geo,**nets)
     return all_metrics,numerics,summary
 
 

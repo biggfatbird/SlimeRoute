@@ -1,0 +1,4 @@
+PASS: reproduced heuristic and single adaptive recovery
+PASS: all 10 saved masks, all 3 radii, raw per-zone connectivity, and fresh seed 7
+PASS: actual source hash, full-resolution proximity, topology and stitch sensitivity
+PASS: strict v4.2 local gate; GIS operational truth and cross-platform CI remain unvalidated

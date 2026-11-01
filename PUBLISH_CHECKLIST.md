@@ -1,3 +1,5 @@
+> HISTORICAL v4.1 / earlier document. For the repaired local supplement use README.md and REPAIR_REPORT.md. Its release status and numbers have not been updated here.
+
 # SLIMEROUTE publication checklist
 
 1. Upload **this v4.1 public-release package** to a GitHub repository. Historical assets are explicitly labeled; do not mix them into the current post. Check that `INTEGRITY.sha256` matches all tracked files.

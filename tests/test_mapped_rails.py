@@ -21,7 +21,8 @@ def test_geographic_coverage():
 def test_proximity_is_a_proportion():
     geo=p.build_geometry()
     import numpy as np
-    masks=np.load(Path(__file__).resolve().parents[1]/'out'/'baseline_masks.npz')
+    from research.network_artifacts import load_masks
+    masks=load_masks(Path(__file__).resolve().parents[1]/'out'/'baseline_masks.npz',geo)
     _,_,railmetric=rail_points()
     result=compare(geo,railmetric,masks['Physarum'],(25,50))
     for v in result['thresholds'].values():
