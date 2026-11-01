@@ -1,0 +1,116 @@
+{
+  "seed": 7,
+  "iterations": 450,
+  "parameters_other_than_test": {
+    "gamma": 1.6,
+    "I0": 5.0,
+    "dt": 0.2
+  },
+  "network_extraction_threshold_study": [
+    {
+      "threshold": 0.05,
+      "model_metrics": {
+        "length_km_approx": 10034.549882328189,
+        "terrain_weighted_km_approx": 10461.249409699372,
+        "edges": 315,
+        "connected_pairs": 120,
+        "total_pairs": 120,
+        "mean_detour_reachable_only": 1.3384094625891199,
+        "max_detour_reachable_only": 2.578013372179157
+      }
+    },
+    {
+      "threshold": 0.1,
+      "model_metrics": {
+        "length_km_approx": 10034.549882328189,
+        "terrain_weighted_km_approx": 10461.249409699372,
+        "edges": 315,
+        "connected_pairs": 120,
+        "total_pairs": 120,
+        "mean_detour_reachable_only": 1.3384094625891199,
+        "max_detour_reachable_only": 2.578013372179157
+      }
+    },
+    {
+      "threshold": 0.15,
+      "model_metrics": {
+        "length_km_approx": 10034.549882328189,
+        "terrain_weighted_km_approx": 10461.249409699372,
+        "edges": 315,
+        "connected_pairs": 120,
+        "total_pairs": 120,
+        "mean_detour_reachable_only": 1.3384094625891199,
+        "max_detour_reachable_only": 2.578013372179157
+      }
+    },
+    {
+      "threshold": 0.2,
+      "model_metrics": {
+        "length_km_approx": 10034.549882328189,
+        "terrain_weighted_km_approx": 10461.249409699372,
+        "edges": 315,
+        "connected_pairs": 120,
+        "total_pairs": 120,
+        "mean_detour_reachable_only": 1.3384094625891199,
+        "max_detour_reachable_only": 2.578013372179157
+      }
+    },
+    {
+      "threshold": 0.25,
+      "model_metrics": {
+        "length_km_approx": 10034.549882328189,
+        "terrain_weighted_km_approx": 10461.249409699372,
+        "edges": 315,
+        "connected_pairs": 120,
+        "total_pairs": 120,
+        "mean_detour_reachable_only": 1.3384094625891199,
+        "max_detour_reachable_only": 2.578013372179157
+      }
+    },
+    {
+      "threshold": 0.3,
+      "model_metrics": {
+        "length_km_approx": 10034.549882328189,
+        "terrain_weighted_km_approx": 10461.249409699372,
+        "edges": 315,
+        "connected_pairs": 120,
+        "total_pairs": 120,
+        "mean_detour_reachable_only": 1.3384094625891199,
+        "max_detour_reachable_only": 2.578013372179157
+      }
+    }
+  ],
+  "damage_radius_study_same_25_fixed_centers": [
+    {
+      "radius_km": 75,
+      "connected_pairs_mean": 119.4,
+      "fraction_fully_connected": 0.96,
+      "minimum_pairs": 105
+    },
+    {
+      "radius_km": 100,
+      "connected_pairs_mean": 118.8,
+      "fraction_fully_connected": 0.92,
+      "minimum_pairs": 105
+    },
+    {
+      "radius_km": 150,
+      "connected_pairs_mean": 118.8,
+      "fraction_fully_connected": 0.92,
+      "minimum_pairs": 105
+    },
+    {
+      "radius_km": 200,
+      "connected_pairs_mean": 111.84,
+      "fraction_fully_connected": 0.6,
+      "minimum_pairs": 79
+    },
+    {
+      "radius_km": 250,
+      "connected_pairs_mean": 101.4,
+      "fraction_fully_connected": 0.2,
+      "minimum_pairs": 78
+    }
+  ],
+  "note": "Illustrative sensitivity analysis. Changing the mesh resolution, model parameters or real terrain could change all results."
+}

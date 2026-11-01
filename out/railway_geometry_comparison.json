@@ -1,0 +1,126 @@
+{
+  "description": "Proximity between model lattice network and rasterized actual railway-line geometries (NOT railway route connectivity)",
+  "source": "https://github.com/datta07/INDIAN-SHAPEFILES/blob/master/INDIA/INDIAN_RAILWAYS.geojson",
+  "source_git_blob_sha": "63ff14b3f3b62a6d18d4950e9ab4ba99a3c5c16d",
+  "railway_line_features_in_source": 29946,
+  "railway_coordinate_vertices_in_source": 738962,
+  "source_track_gauges_present": [
+    "BG",
+    "MG",
+    "MTG",
+    "NG"
+  ],
+  "approx_raw_polyline_length_km_in_source": 86355,
+  "source_length_warning": "Polyline lengths can include duplicates and parallel tracks; not a verified Indian Railways route-km total.",
+  "raster_grid": {
+    "origin_lon": 68,
+    "origin_lat": 8,
+    "res_degrees": 0.2,
+    "shape": [
+      133,
+      150
+    ],
+    "occupied_cells": 3157,
+    "position_uncertainty": "Rounding to grid cells up to ~16 km; proximity measured to cell centers, not exact track polylines."
+  },
+  "proximity_is_not": "proof of similar railway topology or routing performance",
+  "network_comparison": "All models use same older approximate terrain and 16-city lattice; real rail mapping is independent. National railway tracks serve far more cities.",
+  "networks": {
+    "Physarum": {
+      "sampled_model_length_km": 9976.567043704486,
+      "model_sample_count": 2130,
+      "median_model_point_to_railcell_km": 11.024880420878072,
+      "median_railcell_to_model_km": 94.28836101410873,
+      "thresholds": {
+        "25": {
+          "fraction_model_length_within_km_of_mapped_track_cells": 0.891981403599448,
+          "fraction_occupied_rail_cells_within_km_of_model": 0.18371872030408615
+        },
+        "50": {
+          "fraction_model_length_within_km_of_mapped_track_cells": 0.9917118561557688,
+          "fraction_occupied_rail_cells_within_km_of_model": 0.3116883116883117
+        },
+        "75": {
+          "fraction_model_length_within_km_of_mapped_track_cells": 1.0,
+          "fraction_occupied_rail_cells_within_km_of_model": 0.43015521064301554
+        },
+        "100": {
+          "fraction_model_length_within_km_of_mapped_track_cells": 1.0,
+          "fraction_occupied_rail_cells_within_km_of_model": 0.5296167247386759
+        }
+      }
+    },
+    "Terminal_MST": {
+      "sampled_model_length_km": 6285.813232305538,
+      "model_sample_count": 1318,
+      "median_model_point_to_railcell_km": 10.046476745410832,
+      "median_railcell_to_model_km": 110.78857214946775,
+      "thresholds": {
+        "25": {
+          "fraction_model_length_within_km_of_mapped_track_cells": 0.9173704472294509,
+          "fraction_occupied_rail_cells_within_km_of_model": 0.1447576813430472
+        },
+        "50": {
+          "fraction_model_length_within_km_of_mapped_track_cells": 1.0,
+          "fraction_occupied_rail_cells_within_km_of_model": 0.2635413367120684
+        },
+        "75": {
+          "fraction_model_length_within_km_of_mapped_track_cells": 1.0,
+          "fraction_occupied_rail_cells_within_km_of_model": 0.3715552739942984
+        },
+        "100": {
+          "fraction_model_length_within_km_of_mapped_track_cells": 1.0,
+          "fraction_occupied_rail_cells_within_km_of_model": 0.4684827367754197
+        }
+      }
+    },
+    "Delhi_shortest_path_union": {
+      "sampled_model_length_km": 12593.55128160249,
+      "model_sample_count": 2630,
+      "median_model_point_to_railcell_km": 12.224485161876228,
+      "median_railcell_to_model_km": 74.14176027670192,
+      "thresholds": {
+        "25": {
+          "fraction_model_length_within_km_of_mapped_track_cells": 0.7980176847262039,
+          "fraction_occupied_rail_cells_within_km_of_model": 0.20367437440608172
+        },
+        "50": {
+          "fraction_model_length_within_km_of_mapped_track_cells": 0.98234285158162,
+          "fraction_occupied_rail_cells_within_km_of_model": 0.36617041495090275
+        },
+        "75": {
+          "fraction_model_length_within_km_of_mapped_track_cells": 1.0,
+          "fraction_occupied_rail_cells_within_km_of_model": 0.5014254038644282
+        },
+        "100": {
+          "fraction_model_length_within_km_of_mapped_track_cells": 1.0,
+          "fraction_occupied_rail_cells_within_km_of_model": 0.5923344947735192
+        }
+      }
+    },
+    "Augmented_MST": {
+      "sampled_model_length_km": 9967.41787128388,
+      "model_sample_count": 2100,
+      "median_model_point_to_railcell_km": 10.487549873605102,
+      "median_railcell_to_model_km": 87.11976309962475,
+      "thresholds": {
+        "25": {
+          "fraction_model_length_within_km_of_mapped_track_cells": 0.8767871512731363,
+          "fraction_occupied_rail_cells_within_km_of_model": 0.19892302819132088
+        },
+        "50": {
+          "fraction_model_length_within_km_of_mapped_track_cells": 0.9810720336537592,
+          "fraction_occupied_rail_cells_within_km_of_model": 0.3370288248337029
+        },
+        "75": {
+          "fraction_model_length_within_km_of_mapped_track_cells": 0.996186557138588,
+          "fraction_occupied_rail_cells_within_km_of_model": 0.4567627494456763
+        },
+        "100": {
+          "fraction_model_length_within_km_of_mapped_track_cells": 1.0,
+          "fraction_occupied_rail_cells_within_km_of_model": 0.5546404814697498
+        }
+      }
+    }
+  }
+}

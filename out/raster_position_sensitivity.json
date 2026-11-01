@@ -1,0 +1,64 @@
+{
+  "note": "Coordinate perturbation of the same coarse raster cell centers is a numerical sensitivity check, not a statistical uncertainty interval or actual re-rasterization of source tracks.",
+  "model": "Physarum, seed 7",
+  "perturbations": [
+    {
+      "relative_cell_lon_shift_degrees": -0.1,
+      "relative_cell_lat_shift_degrees": -0.1,
+      "25km_fraction": 0.9065984022169628,
+      "50km_fraction": 0.9888151314527609
+    },
+    {
+      "relative_cell_lon_shift_degrees": -0.1,
+      "relative_cell_lat_shift_degrees": 0.0,
+      "25km_fraction": 0.8983040819187663,
+      "50km_fraction": 0.990287815043761
+    },
+    {
+      "relative_cell_lon_shift_degrees": -0.1,
+      "relative_cell_lat_shift_degrees": 0.1,
+      "25km_fraction": 0.872293289293207,
+      "50km_fraction": 0.9912802310529786
+    },
+    {
+      "relative_cell_lon_shift_degrees": 0.0,
+      "relative_cell_lat_shift_degrees": -0.1,
+      "25km_fraction": 0.8995204969016771,
+      "50km_fraction": 0.9912317913460742
+    },
+    {
+      "relative_cell_lon_shift_degrees": 0.0,
+      "relative_cell_lat_shift_degrees": 0.0,
+      "25km_fraction": 0.891981403599448,
+      "50km_fraction": 0.9917118561557688
+    },
+    {
+      "relative_cell_lon_shift_degrees": 0.0,
+      "relative_cell_lat_shift_degrees": 0.1,
+      "25km_fraction": 0.8748539886005443,
+      "50km_fraction": 0.9917121955862875
+    },
+    {
+      "relative_cell_lon_shift_degrees": 0.1,
+      "relative_cell_lat_shift_degrees": -0.1,
+      "25km_fraction": 0.884939417406727,
+      "50km_fraction": 0.9985602601038074
+    },
+    {
+      "relative_cell_lon_shift_degrees": 0.1,
+      "relative_cell_lat_shift_degrees": 0.0,
+      "25km_fraction": 0.8858935246589765,
+      "50km_fraction": 0.9960804241690927
+    },
+    {
+      "relative_cell_lon_shift_degrees": 0.1,
+      "relative_cell_lat_shift_degrees": 0.1,
+      "25km_fraction": 0.8751658238360955,
+      "50km_fraction": 0.9907544042870314
+    }
+  ],
+  "range_25km": [
+    0.872293289293207,
+    0.9065984022169628
+  ]
+}

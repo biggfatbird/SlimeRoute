@@ -1,0 +1,52 @@
+[
+  {
+    "seed": 11,
+    "block_center_lon_lat": [
+      74.31986183708455,
+      24.399145831301585
+    ],
+    "before": {
+      "total_km": 10404.646071760524,
+      "detour": 1.36312788202391,
+      "connected_pairs": 120,
+      "pairs": 120
+    },
+    "immediate": {
+      "total_km": 10049.742261192856,
+      "detour": 1.6447618019361214,
+      "connected_pairs": 120,
+      "pairs": 120
+    },
+    "after": {
+      "total_km": 9856.440991003634,
+      "detour": 1.6447618019361214,
+      "connected_pairs": 120,
+      "pairs": 120
+    }
+  },
+  {
+    "seed": 21,
+    "block_center_lon_lat": [
+      79.77557939784121,
+      15.442947860509278
+    ],
+    "before": {
+      "total_km": 9901.056233274297,
+      "detour": 1.4643153911047837,
+      "connected_pairs": 120,
+      "pairs": 120
+    },
+    "immediate": {
+      "total_km": 9304.646071760522,
+      "detour": 1.547802604541332,
+      "connected_pairs": 81,
+      "pairs": 120
+    },
+    "after": {
+      "total_km": 8986.3448015713,
+      "detour": 1.6231696904225184,
+      "connected_pairs": 120,
+      "pairs": 120
+    }
+  }
+]

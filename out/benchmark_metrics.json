@@ -1,0 +1,60 @@
+{
+  "method": "same lattice, original approximate km, weighted cost controls shortest-path choices",
+  "seed": 7,
+  "growth_steps": 450,
+  "damage_radius_km": 150.0,
+  "damage_location_selection": "random spatially separated centers on union of three network edge sets, outside radius+35 km of any city; no connectivity filtering",
+  "unaffected": {
+    "Physarum": {
+      "length_km_approx": 10034.549882328189,
+      "terrain_weighted_km_approx": 10461.249409699372,
+      "edges": 315,
+      "connected_pairs": 120,
+      "total_pairs": 120,
+      "mean_detour_reachable_only": 1.3384094625891199,
+      "max_detour_reachable_only": 2.578013372179157
+    },
+    "terminal_MST_expanded": {
+      "length_km_approx": 6335.9927238132,
+      "terrain_weighted_km_approx": 6691.165307710682,
+      "edges": 200,
+      "connected_pairs": 120,
+      "total_pairs": 120,
+      "mean_detour_reachable_only": 1.5762439673917021,
+      "max_detour_reachable_only": 4.133379145959949
+    },
+    "Delhi_shortest_path_union": {
+      "length_km_approx": 12703.555308033609,
+      "terrain_weighted_km_approx": 13081.925151009851,
+      "edges": 361,
+      "connected_pairs": 120,
+      "total_pairs": 120,
+      "mean_detour_reachable_only": 2.0621684620566283,
+      "max_detour_reachable_only": 12.021570016707052
+    }
+  },
+  "flow_conservation": {
+    "max_nodal_flux_error": 4.819820923418956e-13,
+    "relative_flux_error": 8.669939784392352e-14
+  },
+  "damage_summary": {
+    "Physarum": {
+      "locations": 25,
+      "mean_connected_pairs": 117.6,
+      "min_connected_pairs": 105,
+      "fraction_all_120_stay_connected": 0.84
+    },
+    "terminal_MST_expanded": {
+      "locations": 25,
+      "mean_connected_pairs": 99.88,
+      "min_connected_pairs": 56,
+      "fraction_all_120_stay_connected": 0.44
+    },
+    "Delhi_shortest_path_union": {
+      "locations": 25,
+      "mean_connected_pairs": 90.2,
+      "min_connected_pairs": 16,
+      "fraction_all_120_stay_connected": 0.16
+    }
+  }
+}

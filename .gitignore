@@ -1,0 +1,8 @@
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
+# Large external inputs are downloaded separately and must keep their own licenses.
+/data/*.json
+/data/*.geojson
+# The generated reproducible metrics and edited demo are deliberately trackable.

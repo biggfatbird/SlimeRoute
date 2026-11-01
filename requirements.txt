@@ -1,0 +1,7 @@
+numpy>=1.24,<3
+scipy>=1.11,<2
+matplotlib>=3.7,<4
+# To use genuine rail line GeoJSON geometry (research/compare_real_tracks.py):
+pyproj>=3.5,<4
+# For running validation tests:
+pytest>=8,<10

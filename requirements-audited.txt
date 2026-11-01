@@ -1,0 +1,7 @@
+# Exact versions used to run the 2026-11-01 audit (Python 3.13.5).
+# This is an environment record, NOT a universal lockfile across Python/OS/architecture.
+numpy==2.3.5
+scipy==1.17.0
+matplotlib==3.10.8
+pyproj==3.7.2
+pytest==9.0.2

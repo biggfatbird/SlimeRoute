@@ -1,0 +1,61 @@
+{
+  "budget_km": 10034.549882328189,
+  "metrics": {
+    "length_km_approx": 10016.248612138967,
+    "terrain_weighted_km_approx": 10429.00062350646,
+    "edges": 315,
+    "connected_pairs": 120,
+    "total_pairs": 120,
+    "mean_detour_reachable_only": 1.1976907384291877,
+    "max_detour_reachable_only": 1.9970984099562303
+  },
+  "additions": [
+    {
+      "from": "Nagpur",
+      "to": "Bhubaneswar",
+      "added_km": 716.5063509461097
+    },
+    {
+      "from": "Mumbai",
+      "to": "Hyderabad",
+      "added_km": 621.4101615137755
+    },
+    {
+      "from": "Nagpur",
+      "to": "Lucknow",
+      "added_km": 678.1088913245534
+    },
+    {
+      "from": "Bhopal",
+      "to": "Lucknow",
+      "added_km": 216.50635094610968
+    },
+    {
+      "from": "Kolkata",
+      "to": "Guwahati",
+      "added_km": 434.8076211353316
+    },
+    {
+      "from": "Jaipur",
+      "to": "Ahmedabad",
+      "added_km": 548.2050807568875
+    },
+    {
+      "from": "Bhopal",
+      "to": "Hyderabad",
+      "added_km": 154.9038105676658
+    },
+    {
+      "from": "Delhi",
+      "to": "Patna",
+      "added_km": 309.80762113533143
+    }
+  ],
+  "description": "greedy reduction of terrain-weighted all-pairs route cost, physical-length budget, same lattice, nonoptimal heuristic",
+  "damage_25_sites_same_as_initial_benchmarks": {
+    "sites": 25,
+    "mean_connected_pairs": 112.92,
+    "fraction_fully_connected": 0.72,
+    "min_connected_pairs": 81
+  }
+}

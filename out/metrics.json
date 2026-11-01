@@ -1,0 +1,35 @@
+{
+  "slime_before": {
+    "total_km": 10034.549882328189,
+    "detour": 1.3384094625891199,
+    "connected_pairs": 120,
+    "pairs": 120
+  },
+  "schematic_corridors": {
+    "total_km": 11353.03985954962,
+    "detour": 1.1774112983137475,
+    "connected_pairs": 120,
+    "pairs": 120
+  },
+  "schematic_links_near_tubes": 0.679646017699115,
+  "fraction_of_tube_edges_near_schematic_links": 0.873015873015873,
+  "tolerance_km": 50.0,
+  "seed": 7,
+  "gamma": 1.6,
+  "iterations": {
+    "growth": 450,
+    "repair": 250
+  },
+  "slime_immediately_after_block": {
+    "total_km": 9451.53718043597,
+    "detour": 1.5237250035335652,
+    "connected_pairs": 105,
+    "pairs": 120
+  },
+  "slime_after_adaptation": {
+    "total_km": 9513.139720814414,
+    "detour": 1.5992786851926628,
+    "connected_pairs": 120,
+    "pairs": 120
+  }
+}
